@@ -34,7 +34,6 @@ const (
 )
 
 var (
-	txEvents  = cmttypes.QueryForEvent(cmttypes.EventTx).String()
 	evmEvents = cmtquery.MustCompile(fmt.Sprintf("%s='%s' AND %s.%s='%s'",
 		cmttypes.EventTypeKey,
 		cmttypes.EventTx,
@@ -57,18 +56,20 @@ type RPCStream struct {
 
 	// headerStream/logStream are backed by cometbft event subscription
 	headerStream *Stream[RPCHeader]
-	txStream     *Stream[common.Hash]
 	logStream    *Stream[*ethtypes.Log]
+
+	// pendingTxStream is backed by check-tx ante handler
+	pendingTxStream *Stream[common.Hash]
 
 	wg sync.WaitGroup
 }
 
 func NewRPCStreams(evtClient rpcclient.EventsClient, logger log.Logger, txDecoder sdk.TxDecoder) *RPCStream {
 	return &RPCStream{
-		evtClient: evtClient,
-		logger:    logger,
-		txDecoder: txDecoder,
-		txStream:  NewStream[common.Hash](txStreamSegmentSize, txStreamCapacity),
+		evtClient:       evtClient,
+		logger:          logger,
+		txDecoder:       txDecoder,
+		pendingTxStream: NewStream[common.Hash](txStreamSegmentSize, txStreamCapacity),
 	}
 }
 
@@ -88,14 +89,6 @@ func (s *RPCStream) initSubscriptions() {
 		panic(err)
 	}
 
-	chTx, err := s.evtClient.Subscribe(ctx, streamSubscriberName, txEvents, subscribBufferSize)
-	if err != nil {
-		if err := s.evtClient.UnsubscribeAll(ctx, streamSubscriberName); err != nil {
-			s.logger.Error("failed to unsubscribe", "err", err)
-		}
-		panic(err)
-	}
-
 	chLogs, err := s.evtClient.Subscribe(ctx, streamSubscriberName, evmEvents, subscribBufferSize)
 	if err != nil {
 		if err := s.evtClient.UnsubscribeAll(context.Background(), streamSubscriberName); err != nil {
@@ -104,7 +97,7 @@ func (s *RPCStream) initSubscriptions() {
 		panic(err)
 	}
 
-	go s.start(&s.wg, chBlocks, chTx, chLogs)
+	go s.start(&s.wg, chBlocks, chLogs)
 }
 
 func (s *RPCStream) Close() error {
@@ -125,8 +118,8 @@ func (s *RPCStream) HeaderStream() *Stream[RPCHeader] {
 	return s.headerStream
 }
 
-func (s *RPCStream) TxStream() *Stream[common.Hash] {
-	return s.txStream
+func (s *RPCStream) PendingTxStream() *Stream[common.Hash] {
+	return s.pendingTxStream
 }
 
 func (s *RPCStream) LogStream() *Stream[*ethtypes.Log] {
@@ -134,10 +127,14 @@ func (s *RPCStream) LogStream() *Stream[*ethtypes.Log] {
 	return s.logStream
 }
 
+// ListenPendingTx is a callback passed to application to listen for pending transactions in CheckTx.
+func (s *RPCStream) ListenPendingTx(hash string) {
+	s.PendingTxStream().Add(common.HexToHash(hash))
+}
+
 func (s *RPCStream) start(
 	wg *sync.WaitGroup,
 	chBlocks <-chan coretypes.ResultEvent,
-	chTx <-chan coretypes.ResultEvent,
 	chLogs <-chan coretypes.ResultEvent,
 ) {
 	wg.Add(1)
@@ -167,31 +164,6 @@ func (s *RPCStream) start(
 			header := types.EthHeaderFromTendermint(data.Block.Header, ethtypes.Bloom{}, baseFee)
 			s.headerStream.Add(RPCHeader{EthHeader: header, Hash: common.BytesToHash(data.Block.Header.Hash())})
 
-		case ev, ok := <-chTx:
-			if !ok {
-				chTx = nil
-				break
-			}
-
-			data, ok := ev.Data.(cmttypes.EventDataTx)
-			if !ok {
-				s.logger.Error("event data type mismatch", "type", fmt.Sprintf("%T", ev.Data))
-				continue
-			}
-
-			tx, err := s.txDecoder(data.Tx)
-			if err != nil {
-				s.logger.Error("fail to decode tx", "error", err.Error())
-				continue
-			}
-
-			var hashes []common.Hash
-			for _, msg := range tx.GetMsgs() {
-				if ethTx, ok := msg.(*evmtypes.MsgEthereumTx); ok {
-					hashes = append(hashes, ethTx.AsTransaction().Hash())
-				}
-			}
-			s.txStream.Add(hashes...)
 		case ev, ok := <-chLogs:
 			if !ok {
 				chLogs = nil
