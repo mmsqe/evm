@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	gomath "math"
 	"math/big"
 	"sync"
 
@@ -151,12 +152,6 @@ var (
 	errRequestBeyondHead = fmt.Errorf("request beyond head block")
 )
 
-const (
-	MaxInt32 = 1<<31 - 1
-	MinInt32 = -1 << 31
-	MaxInt64 = 1<<63 - 1
-)
-
 // FeeHistory returns data relevant for fee estimation based on the specified range of blocks.
 func (b *Backend) FeeHistory(
 	userBlockCount math.HexOrDecimal64, // number blocks to fetch, maximum is 100
@@ -175,8 +170,8 @@ func (b *Backend) FeeHistory(
 	if err != nil {
 		return nil, err
 	}
-	blockNumber := int64(blkNumber)
-	blockEnd := int64(lastBlock)
+	blockNumber := int64(blkNumber) //#nosec G115
+	blockEnd := int64(lastBlock)    //#nosec G115
 
 	switch lastBlock {
 	case rpc.EarliestBlockNumber:
@@ -199,7 +194,7 @@ func (b *Backend) FeeHistory(
 		return nil, fmt.Errorf("FeeHistory user block count %d higher than %d", blocks, maxBlockCount)
 	}
 
-	if blockEnd < MaxInt64 && blockEnd+1 < blocks {
+	if blockEnd < gomath.MaxInt64 && blockEnd+1 < blocks {
 		blocks = blockEnd + 1
 	}
 	// Ensure not trying to retrieve before genesis.
@@ -228,7 +223,7 @@ func (b *Backend) FeeHistory(
 				break
 			}
 			value := blockID - blockStart + int64(i)
-			if value > MaxInt32 || value < MinInt32 {
+			if value > gomath.MaxInt32 || value < gomath.MinInt32 {
 				return nil, fmt.Errorf("integer overflow: calculated value %d exceeds int32 limits", value)
 			}
 			wg.Add(1)
