@@ -88,10 +88,6 @@ func newFilter(logger log.Logger, backend Backend, criteria filters.FilterCriter
 	}
 }
 
-const (
-	maxToOverhang = 600
-)
-
 // Logs searches the blockchain for matching log entries, returning all from the
 // first block that contains matches, updating the start of the filter accordingly.
 func (f *Filter) Logs(_ context.Context, logLimit int, blockLimit int64) ([]*ethtypes.Log, error) {
@@ -166,9 +162,6 @@ func (f *Filter) Logs(_ context.Context, logLimit int, blockLimit int64) ([]*eth
 	// check bounds
 	if from > head || from > to {
 		return nil, errInvalidBlockRange
-	}
-	if to > head+maxToOverhang {
-		to = head + maxToOverhang
 	}
 	if to > head {
 		return nil, errInvalidBlockRange
