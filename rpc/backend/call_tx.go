@@ -369,7 +369,10 @@ func (b *Backend) DoCall(
 	if err != nil {
 		return nil, err
 	}
-
+	length := len(res.Ret)
+	if length > int(b.Cfg.JSONRPC.ReturnDataLimit) && b.Cfg.JSONRPC.ReturnDataLimit != 0 {
+		return nil, fmt.Errorf("response too large %d exceeding limit %d", length, b.Cfg.JSONRPC.ReturnDataLimit)
+	}
 	if err = handleRevertError(res.VmError, res.Ret); err != nil {
 		return nil, err
 	}

@@ -104,6 +104,9 @@ const (
 
 	// DefaultGasAdjustment value to use as default in gas-adjustment flag
 	DefaultGasAdjustment = 1.2
+
+	// DefaultReturnDataLimit is maximum number of bytes returned from eth_call or similar invocations
+	DefaultReturnDataLimit = 100000
 )
 
 var evmTracers = []string{"json", "markdown", "struct", "access_list"}
@@ -173,6 +176,8 @@ type JSONRPCConfig struct {
 	MetricsAddress string `mapstructure:"metrics-address"`
 	// FixRevertGasRefundHeight defines the upgrade height for fix of revert gas refund logic when transaction reverted
 	FixRevertGasRefundHeight int64 `mapstructure:"fix-revert-gas-refund-height"`
+	// ReturnDataLimit defines maximum number of bytes returned from `eth_call` or similar invocations
+	ReturnDataLimit int64 `mapstructure:"return-data-limit"`
 }
 
 // TLSConfig defines the certificate and matching private key for the server.
@@ -234,6 +239,7 @@ func DefaultJSONRPCConfig() *JSONRPCConfig {
 		EnableIndexer:            false,
 		MetricsAddress:           DefaultJSONRPCMetricsAddress,
 		FixRevertGasRefundHeight: DefaultFixRevertGasRefundHeight,
+		ReturnDataLimit:          DefaultReturnDataLimit,
 	}
 }
 
