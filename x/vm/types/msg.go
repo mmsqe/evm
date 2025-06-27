@@ -292,10 +292,47 @@ func (msg MsgEthereumTx) AsTransaction() *ethtypes.Transaction {
 	return ethtypes.NewTx(txData.AsEthereumData())
 }
 
+func bigMin(x, y *big.Int) *big.Int {
+	if x.Cmp(y) > 0 {
+		return y
+	}
+	return x
+}
+
 // AsMessage creates an Ethereum core.Message from the msg fields
 func (msg MsgEthereumTx) AsMessage(signer ethtypes.Signer, baseFee *big.Int) (*core.Message, error) {
-	tx := msg.AsTransaction()
-	return core.TransactionToMessage(tx, signer, baseFee)
+	txData, err := UnpackTxData(msg.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	gasPrice, gasFeeCap, gasTipCap := txData.GetGasPrice(), txData.GetGasFeeCap(), txData.GetGasTipCap()
+	if baseFee != nil {
+		gasPrice = bigMin(gasPrice.Add(gasTipCap, baseFee), gasFeeCap)
+	}
+	var from common.Address
+	if len(msg.From) > 0 {
+		from = common.HexToAddress(msg.From)
+	} else {
+		// heavy path
+		from, err = signer.Sender(msg.AsTransaction())
+		if err != nil {
+			return nil, err
+		}
+	}
+	ethMsg := core.Message{
+		From:       from,
+		To:         txData.GetTo(),
+		Nonce:      txData.GetNonce(),
+		Value:      txData.GetValue(),
+		GasLimit:   txData.GetGas(),
+		GasPrice:   gasPrice,
+		GasFeeCap:  gasFeeCap,
+		GasTipCap:  gasTipCap,
+		Data:       txData.GetData(),
+		AccessList: txData.GetAccessList(),
+	}
+	return &ethMsg, nil
 }
 
 // GetSender extracts the sender address from the signature values using the latest signer for the given chainID.

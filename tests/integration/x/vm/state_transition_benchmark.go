@@ -50,7 +50,7 @@ func newSignedEthTx(
 	addr sdk.Address,
 	krSigner keyring.Signer,
 	ethSigner ethtypes.Signer,
-) (*ethtypes.Transaction, error) {
+) (*evmtypes.MsgEthereumTx, error) {
 	var ethTx *ethtypes.Transaction
 	switch txData := txData.(type) {
 	case *ethtypes.AccessListTx:
@@ -76,7 +76,11 @@ func newSignedEthTx(
 		return nil, err
 	}
 
-	return ethTx, nil
+	var msg evmtypes.MsgEthereumTx
+	if err := msg.FromEthereumTx(ethTx); err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func newEthMsgTx(
