@@ -51,7 +51,7 @@ func TestGetSigners(t *testing.T) {
 		GasFeeCap: big.NewInt(200),
 	}
 	ethMsg := types.NewTx(evmTx)
-	ethMsg.From = ethAddr.String()
+	ethMsg.From = ethAddr.Bytes()
 	txWithEth := &mockHasExtOptions{
 		msg: ethMsg,
 	}

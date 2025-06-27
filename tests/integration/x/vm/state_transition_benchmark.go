@@ -134,7 +134,7 @@ func newEthMsgTx(
 		return nil, nil, err
 	}
 
-	msg.From = address.Hex()
+	msg.From = address.Bytes()
 
 	return msg, baseFee, msg.Sign(ethSigner, krSigner)
 }
@@ -150,14 +150,12 @@ func newNativeMessage(
 	data []byte,
 	accessList ethtypes.AccessList,
 ) (*core.Message, error) {
-	msgSigner := ethtypes.MakeSigner(cfg, big.NewInt(blockHeight), 10000000)
-
 	msg, baseFee, err := newEthMsgTx(nonce, address, krSigner, ethSigner, txType, data, accessList)
 	if err != nil {
 		return nil, err
 	}
 
-	m, err := msg.AsMessage(msgSigner, baseFee)
+	m, err := msg.AsMessage(baseFee)
 	if err != nil {
 		return nil, err
 	}

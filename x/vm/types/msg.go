@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,7 +12,6 @@ import (
 	protov2 "google.golang.org/protobuf/proto"
 
 	evmapi "github.com/cosmos/evm/api/cosmos/evm/vm/v1"
-	"github.com/cosmos/evm/types"
 
 	errorsmod "cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
@@ -148,6 +148,21 @@ func (msg *MsgEthereumTx) FromEthereumTx(tx *ethtypes.Transaction) error {
 	return nil
 }
 
+// FromSignedEthereumTx populates the message fields from the given signed ethereum transaction, and set From field.
+func (msg *MsgEthereumTx) FromSignedEthereumTx(tx *ethtypes.Transaction, chainID *big.Int) error {
+	if err := msg.FromEthereumTx(tx); err != nil {
+		return err
+	}
+
+	from, err := msg.recoverSender(chainID)
+	if err != nil {
+		return err
+	}
+
+	msg.From = from.Bytes()
+	return nil
+}
+
 // Route returns the route value of an MsgEthereumTx.
 func (msg MsgEthereumTx) Route() string { return RouterKey }
 
@@ -157,10 +172,12 @@ func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 // ValidateBasic implements the sdk.Msg interface. It performs basic validation
 // checks of a Transaction. If returns an error if validation fails.
 func (msg MsgEthereumTx) ValidateBasic() error {
-	if msg.From != "" {
-		if err := types.ValidateAddress(msg.From); err != nil {
-			return errorsmod.Wrap(err, "invalid from address")
-		}
+	if len(msg.DeprecatedFrom) != 0 {
+		return errorsmod.Wrapf(errortypes.ErrInvalidRequest, "deprecated From field is not empty")
+	}
+
+	if len(msg.From) == 0 {
+		return errorsmod.Wrapf(errortypes.ErrInvalidRequest, "sender address is missing")
 	}
 
 	// Validate Size_ field, should be kept empty
@@ -205,6 +222,39 @@ func (msg *MsgEthereumTx) GetMsgs() []sdk.Msg {
 
 func (msg *MsgEthereumTx) GetMsgsV2() ([]protov2.Message, error) {
 	return nil, errors.New("not implemented")
+}
+
+// GetSigners returns the expected signers for an Ethereum transaction message.
+// For such a message, there should exist only a single 'signer'.
+func (msg *MsgEthereumTx) GetSigners() []sdk.AccAddress {
+	if len(msg.From) == 0 {
+		return nil
+	}
+	return []sdk.AccAddress{msg.GetFrom()}
+}
+
+// GetSender convert the From field to common.Address
+// From should always be set, which is validated in ValidateBasic
+func (msg *MsgEthereumTx) GetSender() common.Address {
+	return common.BytesToAddress(msg.From)
+}
+
+// GetSenderLegacy fallbacks to old behavior if From is empty, should be used by json-rpc
+func (msg *MsgEthereumTx) GetSenderLegacy(chainID *big.Int) (common.Address, error) {
+	if len(msg.From) > 0 {
+		return msg.GetSender(), nil
+	}
+	sender, err := msg.recoverSender(chainID)
+	if err != nil {
+		return common.Address{}, err
+	}
+	msg.From = sender.Bytes()
+	return sender, nil
+}
+
+// recoverSender recovers the sender address from the transaction signature.
+func (msg *MsgEthereumTx) recoverSender(chainID *big.Int) (common.Address, error) {
+	return ethtypes.LatestSignerForChainID(chainID).Sender(msg.AsTransaction())
 }
 
 // GetSignBytes returns the Amino bytes of an Ethereum transaction message used
@@ -275,11 +325,7 @@ func (msg MsgEthereumTx) GetEffectiveFee(baseFee *big.Int) *big.Int {
 // GetFrom loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
 func (msg *MsgEthereumTx) GetFrom() sdk.AccAddress {
-	if msg.From == "" {
-		return nil
-	}
-
-	return common.HexToAddress(msg.From).Bytes()
+	return sdk.AccAddress(msg.From)
 }
 
 // AsTransaction creates an Ethereum Transaction type from the msg fields
@@ -300,7 +346,7 @@ func bigMin(x, y *big.Int) *big.Int {
 }
 
 // AsMessage creates an Ethereum core.Message from the msg fields
-func (msg MsgEthereumTx) AsMessage(signer ethtypes.Signer, baseFee *big.Int) (*core.Message, error) {
+func (msg MsgEthereumTx) AsMessage(baseFee *big.Int) (*core.Message, error) {
 	txData, err := UnpackTxData(msg.Data)
 	if err != nil {
 		return nil, err
@@ -310,18 +356,8 @@ func (msg MsgEthereumTx) AsMessage(signer ethtypes.Signer, baseFee *big.Int) (*c
 	if baseFee != nil {
 		gasPrice = bigMin(gasPrice.Add(gasTipCap, baseFee), gasFeeCap)
 	}
-	var from common.Address
-	if len(msg.From) > 0 {
-		from = common.HexToAddress(msg.From)
-	} else {
-		// heavy path
-		from, err = signer.Sender(msg.AsTransaction())
-		if err != nil {
-			return nil, err
-		}
-	}
 	ethMsg := core.Message{
-		From:       from,
+		From:       msg.GetSender(),
 		To:         txData.GetTo(),
 		Nonce:      txData.GetNonce(),
 		Value:      txData.GetValue(),
@@ -335,16 +371,17 @@ func (msg MsgEthereumTx) AsMessage(signer ethtypes.Signer, baseFee *big.Int) (*c
 	return &ethMsg, nil
 }
 
-// GetSender extracts the sender address from the signature values using the latest signer for the given chainID.
-func (msg *MsgEthereumTx) GetSender(chainID *big.Int) (common.Address, error) {
-	signer := ethtypes.LatestSignerForChainID(chainID)
-	from, err := signer.Sender(msg.AsTransaction())
+// VerifySender verify the sender address against the signature values using the latest signer for the given chainID.
+func (msg *MsgEthereumTx) VerifySender(chainID *big.Int) error {
+	from, err := msg.recoverSender(chainID)
 	if err != nil {
-		return common.Address{}, err
+		return err
 	}
 
-	msg.From = from.Hex()
-	return from, nil
+	if !bytes.Equal(msg.From, from.Bytes()) {
+		return fmt.Errorf("sender verification failed. got %s, expected %s", from.String(), HexAddress(msg.From))
+	}
+	return nil
 }
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
@@ -353,12 +390,12 @@ func (msg MsgEthereumTx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error
 }
 
 // UnmarshalBinary decodes the canonical encoding of transactions.
-func (msg *MsgEthereumTx) UnmarshalBinary(b []byte) error {
+func (msg *MsgEthereumTx) UnmarshalBinary(b []byte, chainID *big.Int) error {
 	tx := &ethtypes.Transaction{}
 	if err := tx.UnmarshalBinary(b); err != nil {
 		return err
 	}
-	return msg.FromEthereumTx(tx)
+	return msg.FromSignedEthereumTx(tx, chainID)
 }
 
 // BuildTx builds the canonical cosmos tx from ethereum msg
@@ -385,9 +422,6 @@ func (msg *MsgEthereumTx) BuildTx(b client.TxBuilder, evmDenom string) (signing.
 	}
 
 	builder.SetExtensionOptions(option)
-
-	// A valid msg should have empty `From`
-	msg.From = ""
 
 	err = builder.SetMsgs(msg)
 	if err != nil {
