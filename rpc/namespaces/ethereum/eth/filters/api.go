@@ -525,6 +525,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 			end = crit.ToBlock.Int64()
 		}
 		// Block numbers below 0 are special cases.
+		// for more info, https://github.com/ethereum/go-ethereum/blob/v1.15.11/eth/filters/api.go#L360
 		if begin > 0 && end > 0 && begin > end {
 			return nil, errInvalidBlockRange
 		}
