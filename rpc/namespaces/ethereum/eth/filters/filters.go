@@ -91,6 +91,10 @@ func newFilter(logger log.Logger, backend Backend, criteria filters.FilterCriter
 // Logs searches the blockchain for matching log entries, returning all from the
 // first block that contains matches, updating the start of the filter accordingly.
 func (f *Filter) Logs(_ context.Context, logLimit int, blockLimit int64) ([]*ethtypes.Log, error) {
+	if blockLimit == 0 {
+		return nil, nil
+	}
+
 	logs := []*ethtypes.Log{}
 	var err error
 
@@ -155,20 +159,21 @@ func (f *Filter) Logs(_ context.Context, logLimit int, blockLimit int64) ([]*eth
 		return nil, err
 	}
 
-	if int64(to-from) > blockLimit {
-		return nil, fmt.Errorf("maximum [from, to] blocks distance: %d", blockLimit)
-	}
-
 	// check bounds
 	if from > head || from > to {
 		return nil, errInvalidBlockRange
 	}
+
 	if to > head {
 		return nil, errInvalidBlockRange
 	}
 
+	if blockLimit > 0 && to-from > uint64(blockLimit) {
+		return nil, fmt.Errorf("maximum [from, to] blocks distance: %d", blockLimit)
+	}
+
 	for height := from; height <= to; height++ {
-		h := int64(height)
+		h := int64(height) //#nosec G115
 		blockRes, err := f.backend.TendermintBlockResultByNumber(&h)
 		if err != nil {
 			f.logger.Debug("failed to fetch block result from Tendermint", "height", height, "error", err.Error())
