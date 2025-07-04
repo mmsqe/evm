@@ -318,7 +318,6 @@ func (b *Backend) EstimateGas(args evmtypes.TransactionArgs, blockNrOptional *rp
 	if err != nil {
 		return 0, err
 	}
-
 	if err = handleRevertError(res.VmError, res.Ret); err != nil {
 		return 0, err
 	}
@@ -370,6 +369,7 @@ func (b *Backend) DoCall(
 	if err != nil {
 		return nil, err
 	}
+
 	if err = handleRevertError(res.VmError, res.Ret); err != nil {
 		return nil, err
 	}
