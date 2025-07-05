@@ -59,7 +59,12 @@ func TestGetSigners(t *testing.T) {
 	adapter := evmd.NewEthSignerExtractionAdapter(fallback)
 	signers, err := adapter.GetSigners(txWithEth)
 	require.NoError(t, err)
-	require.Equal(t, []mempool.SignerData{{Signer: signers[0].Signer, Sequence: signers[0].Sequence}}, signers)
+	require.Equal(t, []mempool.SignerData{
+		mempool.NewSignerData(
+			ethMsg.GetFrom(),
+			ethMsg.AsTransaction().Nonce(),
+		),
+	}, signers)
 	require.False(t, fallback.called)
 
 	fallback = &mockFallback{}
@@ -67,7 +72,8 @@ func TestGetSigners(t *testing.T) {
 	adapter = evmd.NewEthSignerExtractionAdapter(fallback)
 	signers, err = adapter.GetSigners(txWithEth)
 	require.NoError(t, err)
-	fallbackSigners, _ := new(mockFallback).GetSigners(txWithEth)
+	fallbackSigners, err := new(mockFallback).GetSigners(txWithEth)
+	require.NoError(t, err)
 	require.Equal(t, fallbackSigners, signers)
 	require.True(t, fallback.called)
 }
