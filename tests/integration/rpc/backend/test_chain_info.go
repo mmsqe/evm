@@ -510,6 +510,68 @@ func (s *TestSuite) TestFeeHistory() {
 				big.NewInt(0), // for overwrite overlap
 			},
 		},
+		{
+			"pass - EarliestBlockNumber(0x0)",
+			func(validator sdk.AccAddress) {
+				var header metadata.MD
+				baseFee := sdkmath.NewInt(1)
+				queryClient := s.backend.QueryClient.QueryClient.(*mocks.EVMQueryClient)
+				fQueryClient := s.backend.QueryClient.FeeMarket.(*mocks.FeeMarketQueryClient)
+				client := s.backend.ClientCtx.Client.(*mocks.Client)
+				s.backend.Cfg.JSONRPC.FeeHistoryCap = 2
+				_, err := RegisterBlock(client, ethrpc.BlockNumber(1).Int64(), nil)
+				s.Require().NoError(err)
+				_, err = RegisterBlockResults(client, 1)
+				s.Require().NoError(err)
+				RegisterBaseFee(queryClient, baseFee)
+				RegisterValidatorAccount(queryClient, validator)
+				RegisterConsensusParams(client, 1)
+				RegisterParams(queryClient, &header, 1)
+				RegisterFeeMarketParams(fQueryClient, 1)
+			},
+			1,
+			0,
+			&rpc.FeeHistoryResult{
+				OldestBlock:  (*hexutil.Big)(big.NewInt(0)),
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(1)), (*hexutil.Big)(big.NewInt(1))},
+				GasUsedRatio: []float64{0},
+				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
+			},
+			sdk.AccAddress(utiltx.GenerateAddress().Bytes()),
+			true,
+			nil,
+		},
+		{
+			"pass - EarliestBlockNumber(tag)",
+			func(validator sdk.AccAddress) {
+				var header metadata.MD
+				baseFee := sdkmath.NewInt(1)
+				queryClient := s.backend.QueryClient.QueryClient.(*mocks.EVMQueryClient)
+				fQueryClient := s.backend.QueryClient.FeeMarket.(*mocks.FeeMarketQueryClient)
+				client := s.backend.ClientCtx.Client.(*mocks.Client)
+				s.backend.Cfg.JSONRPC.FeeHistoryCap = 2
+				_, err := RegisterBlock(client, ethrpc.BlockNumber(1).Int64(), nil)
+				s.Require().NoError(err)
+				_, err = RegisterBlockResults(client, 1)
+				s.Require().NoError(err)
+				RegisterBaseFee(queryClient, baseFee)
+				RegisterValidatorAccount(queryClient, validator)
+				RegisterConsensusParams(client, 1)
+				RegisterParams(queryClient, &header, 1)
+				RegisterFeeMarketParams(fQueryClient, 1)
+			},
+			1,
+			ethrpc.EarliestBlockNumber,
+			&rpc.FeeHistoryResult{
+				OldestBlock:  (*hexutil.Big)(big.NewInt(0)),
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(1)), (*hexutil.Big)(big.NewInt(1))},
+				GasUsedRatio: []float64{0},
+				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
+			},
+			sdk.AccAddress(utiltx.GenerateAddress().Bytes()),
+			true,
+			nil,
+		},
 	}
 	for _, tc := range testCases {
 		s.Run(fmt.Sprintf("case %s", tc.name), func() {

@@ -154,7 +154,22 @@ func CalcBaseFee(config *params.ChainConfig, parent *ethtypes.Header, p feemarke
 	return bigMax(baseFee, minGasPrice), nil
 }
 
-// output: targetOneFeeHistory
+// ProcessBlock processes a Tendermint block and calculates fee history data for eth_feeHistory RPC.
+// It extracts gas usage, base fees, and transaction reward percentiles from the block data.
+//
+// The function calculates:
+//   - Current block's base fee and next block's base fee (for EIP-1559)
+//   - Gas used ratio (gasUsed / gasLimit)
+//   - Transaction reward percentiles based on effective gas tip values
+//
+// Parameters:
+//   - tendermintBlock: The raw Tendermint block containing transaction data
+//   - ethBlock: Ethereum-formatted block with gas limit and usage information
+//   - rewardPercentiles: Percentile values (0-100) for reward calculation
+//   - tendermintBlockResult: Block execution results containing gas usage per transaction
+//   - targetOneFeeHistory: Output parameter to populate with calculated fee history data
+//
+// Returns an error if block processing fails due to invalid data types or calculation errors.
 func (b *Backend) ProcessBlock(
 	tendermintBlock *cmtrpctypes.ResultBlock,
 	ethBlock *map[string]interface{},
