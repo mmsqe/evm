@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
 	utiltx "github.com/cosmos/evm/testutil/tx"
@@ -141,9 +140,7 @@ func newEthMsgTx(
 
 func newNativeMessage(
 	nonce uint64,
-	blockHeight int64,
 	address common.Address,
-	cfg *params.ChainConfig,
 	krSigner keyring.Signer,
 	ethSigner ethtypes.Signer,
 	txType byte,
@@ -265,9 +262,7 @@ func BenchmarkApplyMessage(b *testing.B) {
 		krSigner := utiltx.NewSigner(suite.Keyring.GetPrivKey(0))
 		m, err := newNativeMessage(
 			suite.Network.App.GetEVMKeeper().GetNonce(suite.Network.GetContext(), addr),
-			suite.Network.GetContext().BlockHeight(),
 			addr,
-			ethCfg,
 			krSigner,
 			signer,
 			ethtypes.AccessListTxType,
@@ -300,9 +295,7 @@ func BenchmarkApplyMessageWithLegacyTx(b *testing.B) {
 		krSigner := utiltx.NewSigner(suite.Keyring.GetPrivKey(0))
 		m, err := newNativeMessage(
 			suite.Network.App.GetEVMKeeper().GetNonce(suite.Network.GetContext(), addr),
-			suite.Network.GetContext().BlockHeight(),
 			addr,
-			ethCfg,
 			krSigner,
 			signer,
 			ethtypes.AccessListTxType,
@@ -335,9 +328,7 @@ func BenchmarkApplyMessageWithDynamicFeeTx(b *testing.B) {
 		krSigner := utiltx.NewSigner(suite.Keyring.GetPrivKey(0))
 		m, err := newNativeMessage(
 			suite.Network.App.GetEVMKeeper().GetNonce(suite.Network.GetContext(), addr),
-			suite.Network.GetContext().BlockHeight(),
 			addr,
-			ethCfg,
 			krSigner,
 			signer,
 			ethtypes.DynamicFeeTxType,
