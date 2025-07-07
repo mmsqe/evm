@@ -2,6 +2,7 @@ package evmd
 
 import (
 	"io"
+	"os"
 
 	"cosmossdk.io/log"
 
@@ -59,7 +60,7 @@ func NewExampleApp(
 			logger,
 			db,
 			traceStore,
-			loadLatest,
+			false,
 			appOpts,
 			evmChainID,
 			evmAppOptions,
@@ -68,6 +69,13 @@ func NewExampleApp(
 	}
 	maxGasWanted := cast.ToUint64(appOpts.Get(srvflags.EVMMaxTxGasWanted))
 	evmd.setAnteHandler(evmd.TxConfig(), maxGasWanted)
+
+	if loadLatest {
+		if err := evmd.LoadLatestVersion(); err != nil {
+			logger.Error("error on loading last version", "err", err)
+			os.Exit(1)
+		}
+	}
 	return evmd
 }
 
