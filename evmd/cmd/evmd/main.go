@@ -9,13 +9,14 @@ import (
 
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/evm/app"
 )
 
 func main() {
 	setupSDKConfig()
 
 	rootCmd := cmd.NewRootCmd()
-	if err := svrcmd.Execute(rootCmd, "evmd", evmdconfig.MustGetDefaultNodeHome()); err != nil {
+	if err := svrcmd.Execute(rootCmd, "evmd", app.MustGetDefaultNodeHome()); err != nil {
 		fmt.Fprintln(rootCmd.OutOrStderr(), err)
 		os.Exit(1)
 	}

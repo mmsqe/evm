@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cosmos/evm/app"
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -47,19 +48,19 @@ func init() {
 	config.SetBip44CoinType(cfg)
 }
 
-func setup(withGenesis bool, invCheckPeriod uint, chainID string, evmChainID uint64) (*EVMD, GenesisState) {
+func setup(withGenesis bool, invCheckPeriod uint, chainID string, evmChainID uint64) (*EVMD, app.GenesisState) {
 	db := dbm.NewMemDB()
 
 	appOptions := make(simtestutil.AppOptionsMap, 0)
 	appOptions[flags.FlagHome] = defaultNodeHome
 	appOptions[server.FlagInvCheckPeriod] = invCheckPeriod
 
-	app := NewExampleApp(log.NewNopLogger(), db, nil, true, appOptions, evmChainID, config.EvmAppOptions, baseapp.SetChainID(chainID))
+	a := NewExampleApp(log.NewNopLogger(), db, nil, true, appOptions, evmChainID, config.EvmAppOptions, baseapp.SetChainID(chainID))
 	if withGenesis {
-		return app, app.DefaultGenesis()
+		return a, a.DefaultGenesis()
 	}
 
-	return app, GenesisState{}
+	return a, app.GenesisState{}
 }
 
 // Setup initializes a new EVMD. A Nop logger is set in EVMD.
