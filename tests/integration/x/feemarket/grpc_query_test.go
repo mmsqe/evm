@@ -1,6 +1,11 @@
-package feemarket
+package feemarket_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/x/feemarket/types"
 
@@ -9,7 +14,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (s *KeeperTestSuite) TestQueryParams() {
+type GRPCServerTestSuite struct {
+	testutil.BaseTestSuite
+}
+
+func TestEGRPCServerTestSuite(t *testing.T) {
+	suite.Run(t, new(GRPCServerTestSuite))
+}
+
+func (s *GRPCServerTestSuite) TestQueryParams() {
+	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -27,7 +41,7 @@ func (s *KeeperTestSuite) TestQueryParams() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.create, s.options...)
+			nw = network.NewUnitTestNetwork(s.Create)
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 
@@ -45,7 +59,8 @@ func (s *KeeperTestSuite) TestQueryParams() {
 	}
 }
 
-func (s *KeeperTestSuite) TestQueryBaseFee() {
+func (s *GRPCServerTestSuite) TestQueryBaseFee() {
+	s.SetupTest()
 	var (
 		expRes         *types.QueryBaseFeeResponse
 		nw             *network.UnitTestNetwork
@@ -79,7 +94,7 @@ func (s *KeeperTestSuite) TestQueryBaseFee() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.create, s.options...)
+			nw = network.NewUnitTestNetwork(s.Create)
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 			initialBaseFee = nw.App.GetFeeMarketKeeper().GetBaseFee(ctx)
@@ -98,7 +113,8 @@ func (s *KeeperTestSuite) TestQueryBaseFee() {
 	}
 }
 
-func (s *KeeperTestSuite) TestQueryBlockGas() {
+func (s *GRPCServerTestSuite) TestQueryBlockGas() {
+	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -115,7 +131,7 @@ func (s *KeeperTestSuite) TestQueryBlockGas() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.create, s.options...)
+			nw = network.NewUnitTestNetwork(s.Create)
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 
