@@ -1,13 +1,14 @@
-//go:build test
-
-package testutil
+package utils_test
 
 import (
 	"math/big"
+	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/cosmos/evm/contracts"
+	"github.com/cosmos/evm/tests/integration/testutil"
 	testfactory "github.com/cosmos/evm/testutil/integration/evm/factory"
 	testhandler "github.com/cosmos/evm/testutil/integration/evm/grpc"
 	testnetwork "github.com/cosmos/evm/testutil/integration/evm/network"
@@ -17,14 +18,21 @@ import (
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 )
 
-func (s *TestSuite) TestGetERC20Balance() {
+type UtilsEvmTestSuite struct {
+	testutil.BaseTestSuite
+}
+
+func TestUtilsEvmTestSuite(t *testing.T) {
+	suite.Run(t, new(UtilsEvmTestSuite))
+}
+
+func (s *UtilsEvmTestSuite) TestGetERC20Balance() {
+	s.SetupTest()
 	keyring := testkeyring.New(1)
 	options := []testnetwork.ConfigOption{
 		testnetwork.WithPreFundedAccounts(keyring.GetAllAccAddrs()...),
 	}
-
-	options = append(options, s.options...)
-	network := testnetwork.NewUnitTestNetwork(s.create, options...)
+	network := testnetwork.NewUnitTestNetwork(s.Create, options...)
 	handler := testhandler.NewIntegrationHandler(network)
 	factory := testfactory.New(network, handler)
 
