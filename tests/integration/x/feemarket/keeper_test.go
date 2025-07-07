@@ -1,6 +1,11 @@
-package feemarket
+package feemarket_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 
 	"cosmossdk.io/math"
@@ -8,7 +13,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
+type FeemarketKeeperTestSuite struct {
+	testutil.BaseTestSuite
+}
+
+func TestFeemarketKeeperTestSuite(t *testing.T) {
+	suite.Run(t, new(FeemarketKeeperTestSuite))
+}
+
+func (s *FeemarketKeeperTestSuite) TestSetGetBlockGasWanted() {
+	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -29,7 +43,7 @@ func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.create, s.options...)
+			nw = network.NewUnitTestNetwork(s.Create)
 			ctx = nw.GetContext()
 
 			tc.malleate()
@@ -40,7 +54,8 @@ func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
 	}
 }
 
-func (s *KeeperTestSuite) TestSetGetGasFee() {
+func (s *FeemarketKeeperTestSuite) TestSetGetGasFee() {
+	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -62,7 +77,7 @@ func (s *KeeperTestSuite) TestSetGetGasFee() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.create, s.options...)
+			nw = network.NewUnitTestNetwork(s.Create)
 			ctx = nw.GetContext()
 
 			tc.malleate()
