@@ -1,28 +1,45 @@
-package feemarket
+package feemarket_test
 
 import (
 	"math/big"
 	"testing"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/stretchr/testify/suite"
 
 	//nolint:revive,ST1001 // dot imports are fine for Ginkgo
 	. "github.com/onsi/ginkgo/v2"
 	//nolint:revive,ST1001 // dot imports are fine for Ginkgo
 	. "github.com/onsi/gomega"
 
-	"github.com/cosmos/evm/testutil/integration/base/factory"
+	"github.com/cosmos/evm/tests/integration/testutil"
+	basefactory "github.com/cosmos/evm/testutil/integration/base/factory"
+	"github.com/cosmos/evm/testutil/integration/evm/factory"
+	"github.com/cosmos/evm/testutil/integration/evm/grpc"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/testutil/integration/evm/utils"
+	testkeyring "github.com/cosmos/evm/testutil/keyring"
 	fmkttypes "github.com/cosmos/evm/x/feemarket/types"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
 	"cosmossdk.io/math"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
+
+var s *IntegrationTestSuite
+
+type IntegrationTestSuite struct {
+	testutil.BaseTestSuite
+	network     *network.UnitTestNetwork
+	factory     factory.TxFactory
+	grpcHandler grpc.Handler
+	keyring     testkeyring.Keyring
+	denom       string
+}
 
 type txParams struct {
 	gasPrice  *big.Int
@@ -32,29 +49,46 @@ type txParams struct {
 }
 type getprices func() txParams
 
-var CreateApp network.CreateEvmApp
+func (s *IntegrationTestSuite) SetupTest() {
+	s.BaseTestSuite.SetupTest()
+	keyring := testkeyring.New(2)
+	options := []network.ConfigOption{
+		network.WithPreFundedAccounts(keyring.GetAllAccAddrs()...),
+		network.WithCustomBaseAppOpts(baseapp.SetMinGasPrices("10aatom")),
+	}
+	nw := network.NewUnitTestNetwork(s.Create, options...)
+	grpcHandler := grpc.NewIntegrationHandler(nw)
+	txFactory := factory.New(nw, grpcHandler)
 
-func TestKeeperIntegrationTestSuite(t *testing.T) {
-	if CreateApp == nil {
-		panic("CreateApp must be set before running the tests")
+	ctx := nw.GetContext()
+	sk := nw.App.GetStakingKeeper()
+	bondDenom, err := sk.BondDenom(ctx)
+	if err != nil {
+		panic(err)
 	}
 
+	s.denom = bondDenom
+	s.factory = txFactory
+	s.grpcHandler = grpcHandler
+	s.keyring = keyring
+	s.network = nw
+}
+
+func TestKeeperIntegrationTestSuite(t *testing.T) {
+	s = new(IntegrationTestSuite)
+	suite.Run(t, s)
+
 	_ = Describe("Feemarket", func() {
-		var (
-			s       *KeeperTestSuite
-			privKey cryptotypes.PrivKey
-		)
+		var privKey cryptotypes.PrivKey
 
 		BeforeEach(func() {
-			s = new(KeeperTestSuite)
-			s.create = CreateApp
 			s.SetupTest()
 			privKey = s.keyring.GetPrivKey(0)
 		})
 
 		Describe("Performing Cosmos transactions", func() {
 			var (
-				txArgs    factory.CosmosTxArgs
+				txArgs    basefactory.CosmosTxArgs
 				gasWanted uint64 = 200_000
 			)
 
@@ -67,7 +101,7 @@ func TestKeeperIntegrationTestSuite(t *testing.T) {
 						Amount: math.NewInt(10000),
 					}},
 				}
-				txArgs = factory.CosmosTxArgs{
+				txArgs = basefactory.CosmosTxArgs{
 					ChainID: s.network.GetChainID(),
 					Msgs:    []sdk.Msg{&msg},
 					Gas:     &gasWanted,
