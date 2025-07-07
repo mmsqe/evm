@@ -13,15 +13,15 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type FeemarketKeeperTestSuite struct {
+type KeeperTestSuite struct {
 	testutil.BaseTestSuite
 }
 
-func TestFeemarketKeeperTestSuite(t *testing.T) {
-	suite.Run(t, new(FeemarketKeeperTestSuite))
+func TestKeeperTestSuite(t *testing.T) {
+	suite.Run(t, new(KeeperTestSuite))
 }
 
-func (s *FeemarketKeeperTestSuite) TestSetGetBlockGasWanted() {
+func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
 	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
@@ -54,7 +54,7 @@ func (s *FeemarketKeeperTestSuite) TestSetGetBlockGasWanted() {
 	}
 }
 
-func (s *FeemarketKeeperTestSuite) TestSetGetGasFee() {
+func (s *KeeperTestSuite) TestSetGetGasFee() {
 	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
