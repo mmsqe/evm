@@ -10,8 +10,8 @@ import (
 	evmante "github.com/cosmos/evm/ante"
 	cosmosevmante "github.com/cosmos/evm/ante/evm"
 	"github.com/cosmos/evm/app"
+	evmconfig "github.com/cosmos/evm/config"
 	srvflags "github.com/cosmos/evm/server/flags"
-	testconfig "github.com/cosmos/evm/testutil/config"
 	cosmosevmtypes "github.com/cosmos/evm/types"
 
 	"cosmossdk.io/log"
@@ -40,7 +40,7 @@ func NewTestApp(
 	loadLatest bool,
 	appOpts servertypes.AppOptions,
 	evmChainID uint64,
-	evmAppOptions testconfig.EVMOptionsFn,
+	evmAppOptions evmconfig.EVMOptionsFn,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *TESTD {
 	evmd := &TESTD{

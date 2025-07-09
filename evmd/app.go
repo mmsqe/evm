@@ -14,8 +14,8 @@ import (
 	evmante "github.com/cosmos/evm/ante"
 	cosmosevmante "github.com/cosmos/evm/ante/evm"
 	"github.com/cosmos/evm/app"
+	evmconfig "github.com/cosmos/evm/config"
 	"github.com/cosmos/evm/evmd/ante"
-	evmdconfig "github.com/cosmos/evm/evmd/cmd/evmd/config"
 	srvflags "github.com/cosmos/evm/server/flags"
 	cosmosevmtypes "github.com/cosmos/evm/types"
 	"github.com/spf13/cast"
@@ -44,7 +44,7 @@ func NewExampleApp(
 	loadLatest bool,
 	appOpts servertypes.AppOptions,
 	evmChainID uint64,
-	evmAppOptions evmdconfig.EVMOptionsFn,
+	evmAppOptions evmconfig.EVMOptionsFn,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *EVMD {
 	evmd := &EVMD{
