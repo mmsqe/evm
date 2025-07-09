@@ -1,53 +1,49 @@
-package evmd
+package app
 
 import (
 	"io"
 	"os"
 
-	"cosmossdk.io/log"
+	"github.com/spf13/cast"
 
 	dbm "github.com/cosmos/cosmos-db"
+	evmante "github.com/cosmos/evm/ante"
+	cosmosevmante "github.com/cosmos/evm/ante/evm"
+	"github.com/cosmos/evm/app"
+	srvflags "github.com/cosmos/evm/server/flags"
+	testconfig "github.com/cosmos/evm/testutil/config"
+	cosmosevmtypes "github.com/cosmos/evm/types"
+
+	"cosmossdk.io/log"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	evmante "github.com/cosmos/evm/ante"
-	cosmosevmante "github.com/cosmos/evm/ante/evm"
-	"github.com/cosmos/evm/app"
-	"github.com/cosmos/evm/evmd/ante"
-	evmdconfig "github.com/cosmos/evm/evmd/cmd/evmd/config"
-	srvflags "github.com/cosmos/evm/server/flags"
-	cosmosevmtypes "github.com/cosmos/evm/types"
-	"github.com/spf13/cast"
 )
 
 func init() {
 	// manually update the power reduction by replacing micro (u) -> atto (a) evmos
 	sdk.DefaultPowerReduction = cosmosevmtypes.AttoPowerReduction
-
-	defaultNodeHome = app.MustGetDefaultNodeHome()
 }
 
-// defaultNodeHome default home directories for the application daemon
-var defaultNodeHome string
-
-// EVMD extends an ABCI application, but with most of its parameters exported.
-type EVMD struct {
+// TESTD extends an ABCI application, but with most of its parameters exported.
+type TESTD struct {
 	*app.BASED
 }
 
 // NewExampleApp returns a reference to an initialized EVMD.
-func NewExampleApp(
+func NewTestApp(
 	logger log.Logger,
 	db dbm.DB,
 	traceStore io.Writer,
 	loadLatest bool,
 	appOpts servertypes.AppOptions,
 	evmChainID uint64,
-	evmAppOptions evmdconfig.EVMOptionsFn,
+	evmAppOptions testconfig.EVMOptionsFn,
 	baseAppOptions ...func(*baseapp.BaseApp),
-) *EVMD {
-	evmd := &EVMD{
+) *TESTD {
+	evmd := &TESTD{
 		BASED: app.NewApp(
 			logger,
 			db,
@@ -71,8 +67,8 @@ func NewExampleApp(
 	return evmd
 }
 
-func (app *EVMD) setAnteHandler(txConfig client.TxConfig, maxGasWanted uint64) {
-	options := ante.HandlerOptions{
+func (app *TESTD) setAnteHandler(txConfig client.TxConfig, maxGasWanted uint64) {
+	options := HandlerOptions{
 		Cdc:                    app.AppCodec(),
 		AccountKeeper:          app.AccountKeeper,
 		BankKeeper:             app.BankKeeper,
@@ -90,5 +86,5 @@ func (app *EVMD) setAnteHandler(txConfig client.TxConfig, maxGasWanted uint64) {
 		panic(err)
 	}
 
-	app.SetAnteHandler(ante.NewAnteHandler(options))
+	app.SetAnteHandler(NewAnteHandler(options))
 }

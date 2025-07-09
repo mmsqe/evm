@@ -132,6 +132,7 @@ const appName = "evmd"
 // defaultNodeHome default home directories for the application daemon
 
 var (
+	_ runtime.AppI            = (*BASED)(nil)
 	_ servertypes.Application = (*BASED)(nil)
 	_ ibctesting.TestingApp   = (*BASED)(nil)
 )
