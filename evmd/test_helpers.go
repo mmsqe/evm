@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/cosmos/evm/app"
+	"github.com/cosmos/evm/evmd/cmd/evmd/config"
+	testconfig "github.com/cosmos/evm/testutil/config"
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 
 	dbm "github.com/cosmos/cosmos-db"
-	"github.com/cosmos/evm/evmd/cmd/evmd/config"
 	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 
@@ -55,7 +56,7 @@ func setup(withGenesis bool, invCheckPeriod uint, chainID string, evmChainID uin
 	appOptions[flags.FlagHome] = defaultNodeHome
 	appOptions[server.FlagInvCheckPeriod] = invCheckPeriod
 
-	a := NewExampleApp(log.NewNopLogger(), db, nil, true, appOptions, evmChainID, config.EvmAppOptions, baseapp.SetChainID(chainID))
+	a := NewExampleApp(log.NewNopLogger(), db, nil, true, appOptions, evmChainID, testconfig.EvmAppOptions, baseapp.SetChainID(chainID))
 	if withGenesis {
 		return a, a.DefaultGenesis()
 	}
@@ -132,7 +133,7 @@ func SetupTestingApp(chainID string, evmChainID uint64) func() (ibctesting.Testi
 			db, nil, true,
 			simtestutil.NewAppOptionsWithFlagHome(defaultNodeHome),
 			evmChainID,
-			config.EvmAppOptions,
+			testconfig.EvmAppOptions,
 			baseapp.SetChainID(chainID),
 		)
 		return app, app.DefaultGenesis()

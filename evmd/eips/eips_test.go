@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/evm/evmd/eips"
 	"github.com/cosmos/evm/evmd/eips/testdata"
 	"github.com/cosmos/evm/evmd/tests/integration"
+	"github.com/cosmos/evm/testutil/config"
 	"github.com/cosmos/evm/testutil/integration/evm/factory"
 	"github.com/cosmos/evm/testutil/integration/evm/grpc"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
@@ -107,7 +108,7 @@ func RunTests(t *testing.T, create network.CreateEvmApp, options ...network.Conf
 		})
 
 		It("should enable the new EIP", func() {
-			eips.Multiplier = eipMultiplier
+			config.Multiplier = eipMultiplier
 			newEIP := 0o000
 
 			qRes, err := gh.GetEvmParams()
@@ -403,7 +404,7 @@ func RunTests(t *testing.T, create network.CreateEvmApp, options ...network.Conf
 		})
 
 		It("should enable the new EIP", func() {
-			eips.SstoreConstantGas = constantGas
+			config.SstoreConstantGas = constantGas
 			newEIP := 0o002
 
 			qRes, err := gh.GetEvmParams()
