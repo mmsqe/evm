@@ -1,11 +1,6 @@
 package feemarket_test
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 
 	storetypes "cosmossdk.io/store/types"
@@ -13,16 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type ABCITestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestABCITestSuite(t *testing.T) {
-	suite.Run(t, new(ABCITestSuite))
-}
-
-func (s *ABCITestSuite) TestEndBlock() {
-	s.SetupTest()
+func (s *KeeperTestSuite) TestEndBlock() {
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context

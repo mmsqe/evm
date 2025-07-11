@@ -1,11 +1,6 @@
 package feemarket_test
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 
 	"cosmossdk.io/math"
@@ -13,16 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type KeeperTestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestKeeperTestSuite(t *testing.T) {
-	suite.Run(t, new(KeeperTestSuite))
-}
-
 func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
-	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context

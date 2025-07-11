@@ -1,13 +1,8 @@
 package feemarket_test
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 
 	"cosmossdk.io/math"
@@ -15,16 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type EIP1559TestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestEIP1559TestSuite(t *testing.T) {
-	suite.Run(t, new(EIP1559TestSuite))
-}
-
-func (s *EIP1559TestSuite) TestCalculateBaseFee() {
-	s.SetupTest()
+func (s *KeeperTestSuite) TestCalculateBaseFee() {
 	var (
 		nw             *network.UnitTestNetwork
 		ctx            sdk.Context

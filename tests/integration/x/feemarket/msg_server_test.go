@@ -1,11 +1,6 @@
 package feemarket_test
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/x/feemarket/types"
 
@@ -14,16 +9,7 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
-type MsgServerTestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestMsgServerTestSuite(t *testing.T) {
-	suite.Run(t, new(MsgServerTestSuite))
-}
-
-func (s *MsgServerTestSuite) TestUpdateParams() {
-	s.SetupTest()
+func (s *KeeperTestSuite) TestUpdateParams() {
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context

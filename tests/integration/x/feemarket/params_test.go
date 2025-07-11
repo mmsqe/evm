@@ -2,24 +2,12 @@ package feemarket_test
 
 import (
 	"reflect"
-	"testing"
 
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/x/feemarket/types"
 )
 
-type ParamsTestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestParamsTestSuite(t *testing.T) {
-	suite.Run(t, new(ParamsTestSuite))
-}
-
-func (s *ParamsTestSuite) TestGetParams() {
+func (s *KeeperTestSuite) TestGetParams() {
 	nw := network.NewUnitTestNetwork(s.Create)
 	ctx := nw.GetContext()
 
@@ -29,7 +17,7 @@ func (s *ParamsTestSuite) TestGetParams() {
 	s.NotNil(params.MinGasMultiplier)
 }
 
-func (s *ParamsTestSuite) TestSetGetParams() {
+func (s *KeeperTestSuite) TestSetGetParams() {
 	nw := network.NewUnitTestNetwork(s.Create)
 	ctx := nw.GetContext()
 

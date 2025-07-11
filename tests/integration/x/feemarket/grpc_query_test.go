@@ -1,11 +1,6 @@
 package feemarket_test
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/x/feemarket/types"
 
@@ -14,16 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type GRPCServerTestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestEGRPCServerTestSuite(t *testing.T) {
-	suite.Run(t, new(GRPCServerTestSuite))
-}
-
-func (s *GRPCServerTestSuite) TestQueryParams() {
-	s.SetupTest()
+func (s *KeeperTestSuite) TestQueryParams() {
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -59,7 +45,7 @@ func (s *GRPCServerTestSuite) TestQueryParams() {
 	}
 }
 
-func (s *GRPCServerTestSuite) TestQueryBaseFee() {
+func (s *KeeperTestSuite) TestQueryBaseFee() {
 	s.SetupTest()
 	var (
 		expRes         *types.QueryBaseFeeResponse
@@ -113,7 +99,7 @@ func (s *GRPCServerTestSuite) TestQueryBaseFee() {
 	}
 }
 
-func (s *GRPCServerTestSuite) TestQueryBlockGas() {
+func (s *KeeperTestSuite) TestQueryBlockGas() {
 	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
