@@ -1,12 +1,25 @@
-package vm
+package vm_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	testkeyring "github.com/cosmos/evm/testutil/keyring"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 )
 
-func (s *KeeperTestSuite) TestEndBlock() {
+type ABCITestSuite struct {
+	testutil.BaseTestSuite
+}
+
+func TestABCITestSuite(t *testing.T) {
+	suite.Run(t, new(ABCITestSuite))
+}
+
+func (s *ABCITestSuite) TestEndBlock() {
 	keyring := testkeyring.New(2)
 	unitNetwork := network.NewUnitTestNetwork(
 		s.Create,

@@ -7,7 +7,10 @@ import (
 	"github.com/cosmos/evm"
 	"github.com/cosmos/evm/tests/integration/testutil/app"
 	"github.com/cosmos/evm/testutil/config"
+	"github.com/cosmos/evm/testutil/integration/evm/factory"
+	"github.com/cosmos/evm/testutil/integration/evm/grpc"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
+	"github.com/cosmos/evm/testutil/keyring"
 
 	clienthelpers "cosmossdk.io/client/v2/helpers"
 	"cosmossdk.io/log"
@@ -45,4 +48,24 @@ func (suite *BaseTestSuite) SetupTest() {
 			baseAppOptions...,
 		)
 	}
+}
+
+type BaseTestSuiteWithFactory struct {
+	BaseTestSuite
+
+	Network *network.UnitTestNetwork
+	Keyring keyring.Keyring
+	Factory factory.TxFactory
+}
+
+func (s *BaseTestSuiteWithFactory) SetupTest() {
+	s.BaseTestSuite.SetupTest()
+	keys := keyring.New(2)
+	opts := []network.ConfigOption{
+		network.WithPreFundedAccounts(keys.GetAllAccAddrs()...),
+	}
+	s.Network = network.NewUnitTestNetwork(s.Create, opts...)
+	gh := grpc.NewIntegrationHandler(s.Network)
+	s.Factory = factory.New(s.Network, gh)
+	s.Keyring = keys
 }
