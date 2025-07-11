@@ -13,7 +13,6 @@ import (
 	//nolint:revive,ST1001 // dot imports are fine for Ginkgo
 	. "github.com/onsi/gomega"
 
-	"github.com/cosmos/evm/evmd/eips"
 	"github.com/cosmos/evm/evmd/eips/testdata"
 	"github.com/cosmos/evm/evmd/tests/integration"
 	"github.com/cosmos/evm/testutil/config"
@@ -260,7 +259,7 @@ func RunTests(t *testing.T, create network.CreateEvmApp, options ...network.Conf
 			Expect(counter.String()).To(Equal(fmt.Sprintf("%d", initialCounterValue+1)), "counter is not correct")
 		})
 		It("should enable the new EIP", func() {
-			eips.Multiplier = eipMultiplier
+			config.Multiplier = eipMultiplier
 			newEIP := 0o001
 
 			qRes, err := gh.GetEvmParams()
