@@ -1,11 +1,24 @@
-package vm
+package vm_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/config"
 	"github.com/cosmos/evm/x/vm/types"
 )
 
-func (s *KeeperTestSuite) TestParams() {
+type ParamsTestSuite struct {
+	testutil.BaseTestSuiteWithNetworkAndFactory
+}
+
+func TestParamsTestSuite(t *testing.T) {
+	suite.Run(t, new(ParamsTestSuite))
+}
+
+func (s *ParamsTestSuite) TestParams() {
 	defaultChainEVMParams := config.NewEVMGenesisState().Params
 	defaultChainEVMParams.ActiveStaticPrecompiles = types.AvailableStaticPrecompiles
 
@@ -104,8 +117,6 @@ func (s *KeeperTestSuite) TestParams() {
 	}
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
-			s.SetupTest()
-
 			s.Require().Equal(tc.paramsFun(), tc.getFun(), "expected different params")
 		})
 	}

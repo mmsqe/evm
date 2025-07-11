@@ -53,30 +53,38 @@ func (suite *BaseTestSuite) SetupTest() {
 	}
 }
 
-type BaseTestSuiteWithNetworkAndFactory struct {
+type BaseTestSuiteWithNetwork struct {
 	BaseTestSuite
 
 	Network *network.UnitTestNetwork
 	Keyring keyring.Keyring
-	Factory factory.TxFactory
 }
 
-func (s *BaseTestSuiteWithNetworkAndFactory) setup(
+func (s *BaseTestSuiteWithNetwork) setup(
 	opts ...network.ConfigOption,
 ) {
 	s.BaseTestSuite.SetupTest()
-	keys := keyring.New(2)
+	s.Keyring = keyring.New(2)
 	opts = append([]network.ConfigOption{
-		network.WithPreFundedAccounts(keys.GetAllAccAddrs()...),
+		network.WithPreFundedAccounts(s.Keyring.GetAllAccAddrs()...),
 	}, opts...)
 	s.Network = network.NewUnitTestNetwork(s.Create, opts...)
-	gh := grpc.NewIntegrationHandler(s.Network)
-	s.Factory = factory.New(s.Network, gh)
-	s.Keyring = keys
+}
+
+func (s *BaseTestSuiteWithNetwork) SetupTest() {
+	s.setup()
+}
+
+type BaseTestSuiteWithNetworkAndFactory struct {
+	BaseTestSuiteWithNetwork
+
+	Factory factory.TxFactory
 }
 
 func (s *BaseTestSuiteWithNetworkAndFactory) SetupTest() {
 	s.setup()
+	gh := grpc.NewIntegrationHandler(s.Network)
+	s.Factory = factory.New(s.Network, gh)
 }
 
 type BaseTestSuiteWithFactoryAndGenesis struct {
