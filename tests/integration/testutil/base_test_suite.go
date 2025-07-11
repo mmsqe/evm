@@ -11,12 +11,15 @@ import (
 	"github.com/cosmos/evm/testutil/integration/evm/grpc"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/testutil/keyring"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
+	"github.com/cosmos/evm/x/vm/statedb"
 
 	clienthelpers "cosmossdk.io/client/v2/helpers"
 	"cosmossdk.io/log"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	simutils "github.com/cosmos/cosmos-sdk/testutil/sims"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type BaseTestSuite struct {
@@ -50,7 +53,7 @@ func (suite *BaseTestSuite) SetupTest() {
 	}
 }
 
-type BaseTestSuiteWithFactory struct {
+type BaseTestSuiteWithNetworkAndFactory struct {
 	BaseTestSuite
 
 	Network *network.UnitTestNetwork
@@ -58,14 +61,43 @@ type BaseTestSuiteWithFactory struct {
 	Factory factory.TxFactory
 }
 
-func (s *BaseTestSuiteWithFactory) SetupTest() {
+func (s *BaseTestSuiteWithNetworkAndFactory) setup(
+	opts ...network.ConfigOption,
+) {
 	s.BaseTestSuite.SetupTest()
 	keys := keyring.New(2)
-	opts := []network.ConfigOption{
+	opts = append([]network.ConfigOption{
 		network.WithPreFundedAccounts(keys.GetAllAccAddrs()...),
-	}
+	}, opts...)
 	s.Network = network.NewUnitTestNetwork(s.Create, opts...)
 	gh := grpc.NewIntegrationHandler(s.Network)
 	s.Factory = factory.New(s.Network, gh)
 	s.Keyring = keys
+}
+
+func (s *BaseTestSuiteWithNetworkAndFactory) SetupTest() {
+	s.setup()
+}
+
+type BaseTestSuiteWithFactoryAndGenesis struct {
+	BaseTestSuiteWithNetworkAndFactory
+	EnableFeemarket bool
+}
+
+func (s *BaseTestSuiteWithFactoryAndGenesis) SetupTest() {
+	// Set custom balance based on test params
+	customGenesis := network.CustomGenesisState{}
+	feemarketGenesis := feemarkettypes.DefaultGenesisState()
+	if s.EnableFeemarket {
+		feemarketGenesis.Params.EnableHeight = 1
+		feemarketGenesis.Params.NoBaseFee = false
+	} else {
+		feemarketGenesis.Params.NoBaseFee = true
+	}
+	customGenesis[feemarkettypes.ModuleName] = feemarketGenesis
+	s.setup(network.WithCustomGenesis(customGenesis))
+}
+
+func (s *BaseTestSuiteWithFactoryAndGenesis) StateDB() *statedb.StateDB {
+	return statedb.New(s.Network.GetContext(), s.Network.App.GetEVMKeeper(), statedb.NewEmptyTxConfig(common.BytesToHash(s.Network.GetContext().HeaderHash())))
 }

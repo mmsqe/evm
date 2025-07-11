@@ -16,7 +16,7 @@ import (
 )
 
 type MsgServerTestSuite struct {
-	testutil.BaseTestSuiteWithFactory
+	testutil.BaseTestSuiteWithNetworkAndFactory
 }
 
 func TestMsgServerTestSuite(t *testing.T) {

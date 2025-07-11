@@ -22,7 +22,7 @@ import (
 )
 
 type GenesisTestSuite struct {
-	testutil.BaseTestSuiteWithFactory
+	testutil.BaseTestSuiteWithNetworkAndFactory
 }
 
 func TestGenesisTestSuite(t *testing.T) {
