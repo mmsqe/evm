@@ -7,7 +7,6 @@ import (
 	"github.com/cosmos/evm"
 	"github.com/cosmos/evm/evmd"
 	"github.com/cosmos/evm/evmd/cmd/evmd/config"
-	testconfig "github.com/cosmos/evm/testutil/config"
 	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 
@@ -40,7 +39,7 @@ func CreateEvmd(chainID string, evmChainID uint64, customBaseAppOptions ...func(
 		loadLatest,
 		appOptions,
 		evmChainID,
-		testconfig.EvmAppOptions,
+		config.EvmAppOptions,
 		baseAppOptions...,
 	)
 }
@@ -55,7 +54,7 @@ func SetupEvmd() (ibctesting.TestingApp, map[string]json.RawMessage) {
 		true,
 		simutils.EmptyAppOptions{},
 		9001,
-		testconfig.EvmAppOptions,
+		config.EvmAppOptions,
 	)
 	// disable base fee for testing
 	genesisState := app.DefaultGenesis()

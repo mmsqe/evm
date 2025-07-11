@@ -13,7 +13,6 @@ import (
 	cmtcli "github.com/cometbft/cometbft/libs/cli"
 
 	dbm "github.com/cosmos/cosmos-db"
-	"github.com/cosmos/evm/app"
 	cosmosevmcmd "github.com/cosmos/evm/client"
 	cosmosevmkeyring "github.com/cosmos/evm/crypto/keyring"
 	"github.com/cosmos/evm/evmd"
@@ -83,7 +82,7 @@ func NewRootCmd() *cobra.Command {
 		WithInput(os.Stdin).
 		WithAccountRetriever(authtypes.AccountRetriever{}).
 		WithBroadcastMode(flags.FlagBroadcastMode).
-		WithHomeDir(app.MustGetDefaultNodeHome()).
+		WithHomeDir(evmdconfig.MustGetDefaultNodeHome()).
 		WithViper(""). // In simapp, we don't use any prefix for env variables.
 		// Cosmos EVM specific setup
 		WithKeyringOptions(cosmosevmkeyring.Option()).
@@ -132,7 +131,7 @@ func NewRootCmd() *cobra.Command {
 				return err
 			}
 
-			customAppTemplate, customAppConfig := app.InitAppConfig(evmdconfig.BaseDenom, evmdconfig.EVMChainID)
+			customAppTemplate, customAppConfig := evmdconfig.InitAppConfig(evmdconfig.BaseDenom, evmdconfig.EVMChainID)
 			customTMConfig := initTendermintConfig()
 
 			return sdkserver.InterceptConfigsPreRunHandler(cmd, customAppTemplate, customAppConfig, customTMConfig)
@@ -174,7 +173,7 @@ func initRootCmd(rootCmd *cobra.Command, osApp *evmd.EVMD) {
 	cfg := sdk.GetConfig()
 	cfg.Seal()
 
-	defaultNodeHome := app.MustGetDefaultNodeHome()
+	defaultNodeHome := evmdconfig.MustGetDefaultNodeHome()
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(osApp.BasicModuleManager, defaultNodeHome),
 		genutilcli.Commands(osApp.TxConfig(), osApp.BasicModuleManager, defaultNodeHome),

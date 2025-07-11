@@ -1,4 +1,4 @@
-package feemarket_test
+package feemarket
 
 import (
 	"github.com/cosmos/evm/testutil/integration/evm/network"
@@ -29,7 +29,7 @@ func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.Create)
+			nw = network.NewUnitTestNetwork(s.create, s.options...)
 			ctx = nw.GetContext()
 
 			tc.malleate()
@@ -41,7 +41,6 @@ func (s *KeeperTestSuite) TestSetGetBlockGasWanted() {
 }
 
 func (s *KeeperTestSuite) TestSetGetGasFee() {
-	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -63,7 +62,7 @@ func (s *KeeperTestSuite) TestSetGetGasFee() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.Create)
+			nw = network.NewUnitTestNetwork(s.create, s.options...)
 			ctx = nw.GetContext()
 
 			tc.malleate()

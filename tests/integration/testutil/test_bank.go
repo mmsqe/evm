@@ -1,11 +1,8 @@
-package utils_test
+//go:build test
+
+package testutil
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	"github.com/cosmos/evm/testutil/integration/evm/utils"
 	testkeyring "github.com/cosmos/evm/testutil/keyring"
@@ -17,16 +14,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-type UtilsBankTestSuite struct {
-	testutil.BaseTestSuite
-}
-
-func TestUtilsBankTestSuite(t *testing.T) {
-	suite.Run(t, new(UtilsBankTestSuite))
-}
-
-func (s *UtilsBankTestSuite) TestCheckBalances() {
-	s.SetupTest()
+func (s *TestSuite) TestCheckBalances() {
 	testDenom := "atest"
 	keyring := testkeyring.New(1)
 	address := keyring.GetAccAddr(0).String()
@@ -70,7 +58,8 @@ func (s *UtilsBankTestSuite) TestCheckBalances() {
 			network.WithBaseCoin(testDenom, tc.decimals),
 			network.WithPreFundedAccounts(keyring.GetAllAccAddrs()...),
 		}
-		nw := network.New(s.Create, options...)
+		options = append(options, s.options...)
+		nw := network.New(s.create, options...)
 		err := utils.CheckBalances(nw.GetContext(), nw.GetBankClient(), balances)
 		if tc.expPass {
 			s.NoError(err, "unexpected error checking balances")

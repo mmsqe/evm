@@ -1,4 +1,4 @@
-package app
+package evmd
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 
 // ExportAppStateAndValidators exports the state of the application for a genesis
 // file.
-func (app *BASED) ExportAppStateAndValidators(forZeroHeight bool, jailAllowedAddrs []string, modulesToExport []string) (servertypes.ExportedApp, error) {
+func (app *EVMD) ExportAppStateAndValidators(forZeroHeight bool, jailAllowedAddrs []string, modulesToExport []string) (servertypes.ExportedApp, error) {
 	// as if they could withdraw from the start of the next block
 	ctx := app.NewContextLegacy(true, tmproto.Header{Height: app.LastBlockHeight()})
 
@@ -32,7 +32,7 @@ func (app *BASED) ExportAppStateAndValidators(forZeroHeight bool, jailAllowedAdd
 		}
 	}
 
-	genState, err := app.ModuleManager.ExportGenesisForModules(ctx, app.AppCodec(), modulesToExport)
+	genState, err := app.ModuleManager.ExportGenesisForModules(ctx, app.appCodec, modulesToExport)
 	if err != nil {
 		return servertypes.ExportedApp{}, err
 	}
@@ -55,7 +55,7 @@ func (app *BASED) ExportAppStateAndValidators(forZeroHeight bool, jailAllowedAdd
 // NOTE zero height genesis is a temporary feature which will be deprecated
 //
 //	in favour of export at a block height
-func (app *BASED) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) error {
+func (app *EVMD) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) error {
 	applyAllowedAddrs := len(jailAllowedAddrs) > 0
 
 	// check if there is an allowed address list

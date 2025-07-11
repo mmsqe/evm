@@ -1,9 +1,8 @@
-package vm_test
+package vm
 
 import (
 	"fmt"
 	"math/big"
-	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/tracing"
@@ -12,9 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	ethparams "github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/evm/tests/integration/testutil"
 	testconstants "github.com/cosmos/evm/testutil/constants"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
 	testKeyring "github.com/cosmos/evm/testutil/keyring"
@@ -33,15 +30,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-type StateDBTestSuite struct {
-	testutil.BaseTestSuiteWithFactoryAndGenesis
-}
-
-func TestStateDBTestSuite(t *testing.T) {
-	suite.Run(t, new(StateDBTestSuite))
-}
-
-func (s *StateDBTestSuite) TestCreateAccount() {
+func (s *KeeperTestSuite) TestCreateAccount() {
 	testCases := []struct {
 		name     string
 		addr     common.Address
@@ -81,7 +70,7 @@ func (s *StateDBTestSuite) TestCreateAccount() {
 	}
 }
 
-func (s *StateDBTestSuite) TestAddBalance() {
+func (s *KeeperTestSuite) TestAddBalance() {
 	testCases := []struct {
 		name   string
 		amount *uint256.Int
@@ -115,7 +104,7 @@ func (s *StateDBTestSuite) TestAddBalance() {
 	}
 }
 
-func (s *StateDBTestSuite) TestSubBalance() {
+func (s *KeeperTestSuite) TestSubBalance() {
 	testCases := []struct {
 		name     string
 		amount   *uint256.Int
@@ -162,7 +151,7 @@ func (s *StateDBTestSuite) TestSubBalance() {
 	}
 }
 
-func (s *StateDBTestSuite) TestGetNonce() {
+func (s *KeeperTestSuite) TestGetNonce() {
 	testCases := []struct {
 		name          string
 		address       common.Address
@@ -196,7 +185,7 @@ func (s *StateDBTestSuite) TestGetNonce() {
 	}
 }
 
-func (s *StateDBTestSuite) TestSetNonce() {
+func (s *KeeperTestSuite) TestSetNonce() {
 	testCases := []struct {
 		name     string
 		address  common.Address
@@ -227,7 +216,7 @@ func (s *StateDBTestSuite) TestSetNonce() {
 	}
 }
 
-func (s *StateDBTestSuite) TestGetCodeHash() {
+func (s *KeeperTestSuite) TestGetCodeHash() {
 	addr := utiltx.GenerateAddress()
 	baseAcc := &authtypes.BaseAccount{Address: sdk.AccAddress(addr.Bytes()).String()}
 	newAcc := s.Network.App.GetAccountKeeper().NewAccount(s.Network.GetContext(), baseAcc)
@@ -272,7 +261,7 @@ func (s *StateDBTestSuite) TestGetCodeHash() {
 	}
 }
 
-func (s *StateDBTestSuite) TestSetCode() {
+func (s *KeeperTestSuite) TestSetCode() {
 	addr := utiltx.GenerateAddress()
 	baseAcc := &authtypes.BaseAccount{Address: sdk.AccAddress(addr.Bytes()).String()}
 	newAcc := s.Network.App.GetAccountKeeper().NewAccount(s.Network.GetContext(), baseAcc)
@@ -328,7 +317,7 @@ func (s *StateDBTestSuite) TestSetCode() {
 	}
 }
 
-func (s *StateDBTestSuite) TestKeeperSetOrDeleteCode() {
+func (s *KeeperTestSuite) TestKeeperSetOrDeleteCode() {
 	testCases := []struct {
 		name     string
 		codeHash []byte
@@ -348,6 +337,7 @@ func (s *StateDBTestSuite) TestKeeperSetOrDeleteCode() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
+			s.SetupTest()
 			addr := utiltx.GenerateAddress()
 			baseAcc := s.Network.App.GetAccountKeeper().NewAccountWithAddress(s.Network.GetContext(), addr.Bytes())
 			s.Network.App.GetAccountKeeper().SetAccount(s.Network.GetContext(), baseAcc)
@@ -366,7 +356,7 @@ func (s *StateDBTestSuite) TestKeeperSetOrDeleteCode() {
 	}
 }
 
-func (s *StateDBTestSuite) TestRefund() {
+func (s *KeeperTestSuite) TestRefund() {
 	testCases := []struct {
 		name      string
 		malleate  func(vm.StateDB)
@@ -405,7 +395,7 @@ func (s *StateDBTestSuite) TestRefund() {
 	}
 }
 
-func (s *StateDBTestSuite) TestState() {
+func (s *KeeperTestSuite) TestState() {
 	testCases := []struct {
 		name       string
 		key, value common.Hash
@@ -432,7 +422,7 @@ func (s *StateDBTestSuite) TestState() {
 	}
 }
 
-func (s *StateDBTestSuite) TestCommittedState() {
+func (s *KeeperTestSuite) TestCommittedState() {
 	key := common.BytesToHash([]byte("key"))
 	value1 := common.BytesToHash([]byte("value1"))
 	value2 := common.BytesToHash([]byte("value2"))
@@ -456,7 +446,11 @@ func (s *StateDBTestSuite) TestCommittedState() {
 	s.Require().Equal(value2, tmp)
 }
 
-func (s *StateDBTestSuite) TestSuicide() {
+func (s *KeeperTestSuite) TestSetAndGetCodeHash() {
+	s.SetupTest()
+}
+
+func (s *KeeperTestSuite) TestSuicide() {
 	Keyring := testKeyring.New(1)
 	unitNetwork := network.NewUnitTestNetwork(
 		s.Create,
@@ -524,7 +518,7 @@ func (s *StateDBTestSuite) TestSuicide() {
 	s.Require().False(db.HasSelfDestructed(secondAddress))
 }
 
-func (s *StateDBTestSuite) TestExist() {
+func (s *KeeperTestSuite) TestExist() {
 	testCases := []struct {
 		name     string
 		address  common.Address
@@ -548,7 +542,7 @@ func (s *StateDBTestSuite) TestExist() {
 	}
 }
 
-func (s *StateDBTestSuite) TestEmpty() {
+func (s *KeeperTestSuite) TestEmpty() {
 	testCases := []struct {
 		name     string
 		address  common.Address
@@ -569,6 +563,7 @@ func (s *StateDBTestSuite) TestEmpty() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
+			s.SetupTest()
 			vmdb := s.StateDB()
 			tc.malleate(vmdb, tc.address)
 
@@ -577,7 +572,7 @@ func (s *StateDBTestSuite) TestEmpty() {
 	}
 }
 
-func (s *StateDBTestSuite) TestSnapshot() {
+func (s *KeeperTestSuite) TestSnapshot() {
 	key := common.BytesToHash([]byte("key"))
 	value1 := common.BytesToHash([]byte("value1"))
 	value2 := common.BytesToHash([]byte("value2"))
@@ -627,13 +622,14 @@ func (s *StateDBTestSuite) TestSnapshot() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
+			s.SetupTest()
 			vmdb := s.StateDB()
 			tc.malleate(vmdb)
 		})
 	}
 }
 
-func (s *StateDBTestSuite) CreateTestTx(msg *types.MsgEthereumTx, priv cryptotypes.PrivKey) authsigning.Tx {
+func (s *KeeperTestSuite) CreateTestTx(msg *types.MsgEthereumTx, priv cryptotypes.PrivKey) authsigning.Tx {
 	option, err := codectypes.NewAnyWithValue(&types.ExtensionOptionsEthereumTx{})
 	s.Require().NoError(err)
 
@@ -655,7 +651,7 @@ func (s *StateDBTestSuite) CreateTestTx(msg *types.MsgEthereumTx, priv cryptotyp
 	return txBuilder.GetTx()
 }
 
-func (s *StateDBTestSuite) TestAddLog() {
+func (s *KeeperTestSuite) TestAddLog() {
 	addr, privKey := utiltx.NewAddrKey()
 	toAddr := s.Keyring.GetAddr(0)
 	ethTxParams := &types.EvmTxArgs{
@@ -754,6 +750,7 @@ func (s *StateDBTestSuite) TestAddLog() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
+			s.SetupTest()
 			vmdb := statedb.New(s.Network.GetContext(), s.Network.App.GetEVMKeeper(), statedb.NewTxConfig(
 				common.BytesToHash(s.Network.GetContext().HeaderHash()),
 				tc.hash,
@@ -769,7 +766,7 @@ func (s *StateDBTestSuite) TestAddLog() {
 	}
 }
 
-func (s *StateDBTestSuite) TestPrepareAccessList() {
+func (s *KeeperTestSuite) TestPrepareAccessList() {
 	dest := utiltx.GenerateAddress()
 	precompiles := []common.Address{utiltx.GenerateAddress(), utiltx.GenerateAddress()}
 	accesses := ethtypes.AccessList{
@@ -814,7 +811,7 @@ func (s *StateDBTestSuite) TestPrepareAccessList() {
 	}
 }
 
-func (s *StateDBTestSuite) TestAddAddressToAccessList() {
+func (s *KeeperTestSuite) TestAddAddressToAccessList() {
 	testCases := []struct {
 		name string
 		addr common.Address
@@ -833,7 +830,7 @@ func (s *StateDBTestSuite) TestAddAddressToAccessList() {
 	}
 }
 
-func (s *StateDBTestSuite) TestAddSlotToAccessList() {
+func (s *KeeperTestSuite) TestAddSlotToAccessList() {
 	testCases := []struct {
 		name string
 		addr common.Address
@@ -857,7 +854,7 @@ func (s *StateDBTestSuite) TestAddSlotToAccessList() {
 }
 
 // FIXME skip for now
-// func (suite *StateDBTestSuite) _TestForEachStorage() {
+// func (suite *KeeperTestSuite) _TestForEachStorage() {
 // 	var storage types.Storage
 //
 // 	testCase := []struct {
@@ -906,6 +903,7 @@ func (s *StateDBTestSuite) TestAddSlotToAccessList() {
 //
 // 	for _, tc := range testCase {
 // 		suite.Run(tc.name, func() {
+// 			suite.SetupTest() // reset
 // 			vmdb := suite.StateDB()
 // 			tc.malleate(vmdb)
 //
@@ -925,7 +923,7 @@ func (s *StateDBTestSuite) TestAddSlotToAccessList() {
 // 	}
 // }
 
-func (s *StateDBTestSuite) TestSetBalance() {
+func (s *KeeperTestSuite) TestSetBalance() {
 	amount := common.U2560
 	addr := utiltx.GenerateAddress()
 
@@ -955,6 +953,7 @@ func (s *StateDBTestSuite) TestSetBalance() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
+			s.SetupTest()
 			tc.malleate()
 			err := s.Network.App.GetEVMKeeper().SetBalance(s.Network.GetContext(), tc.addr, amount)
 			if tc.expErr {
@@ -968,7 +967,7 @@ func (s *StateDBTestSuite) TestSetBalance() {
 	}
 }
 
-func (s *StateDBTestSuite) TestDeleteAccount() {
+func (s *KeeperTestSuite) TestDeleteAccount() {
 	var (
 		ctx          sdk.Context
 		contractAddr common.Address
@@ -1000,6 +999,7 @@ func (s *StateDBTestSuite) TestDeleteAccount() {
 
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
+			s.SetupTest()
 			ctx = s.Network.GetContext()
 			contractAddr = s.DeployTestContract(s.T(), ctx, s.Keyring.GetAddr(0), supply)
 

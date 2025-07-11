@@ -1,17 +1,14 @@
-package vm_test
+package vm
 
 import (
 	"math/big"
-	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethparams "github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/evm/tests/integration/testutil"
 	utiltx "github.com/cosmos/evm/testutil/tx"
 	"github.com/cosmos/evm/x/vm/keeper"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
@@ -21,17 +18,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type UtilsTestSuite struct {
-	testutil.BaseTestSuiteWithFactoryAndGenesis
-}
-
-func TestUtilsTestSuite(t *testing.T) {
-	s := new(UtilsTestSuite)
-	s.EnableFeemarket = false
-	suite.Run(t, s)
-}
-
-func (s *UtilsTestSuite) TestCheckSenderBalance() {
+func (s *KeeperTestSuite) TestCheckSenderBalance() {
 	hundredInt := sdkmath.NewInt(100)
 	zeroInt := sdkmath.ZeroInt()
 	oneInt := sdkmath.OneInt()
@@ -287,7 +274,7 @@ func (s *UtilsTestSuite) TestCheckSenderBalance() {
 // NOTE: This method combines testing for both functions, because these used to be
 // in one function and share a lot of the same setup.
 // In practice, the two tested functions will also be sequentially executed.
-func (s *UtilsTestSuite) TestVerifyFeeAndDeductTxCostsFromUserBalance() {
+func (s *KeeperTestSuite) TestVerifyFeeAndDeductTxCostsFromUserBalance() {
 	hundredInt := sdkmath.NewInt(100)
 	zeroInt := sdkmath.ZeroInt()
 	oneInt := sdkmath.NewInt(1)

@@ -1,4 +1,4 @@
-package feemarket_test
+package feemarket
 
 import (
 	"github.com/cosmos/evm/testutil/integration/evm/network"
@@ -27,7 +27,7 @@ func (s *KeeperTestSuite) TestQueryParams() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.Create)
+			nw = network.NewUnitTestNetwork(s.create, s.options...)
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 
@@ -46,7 +46,6 @@ func (s *KeeperTestSuite) TestQueryParams() {
 }
 
 func (s *KeeperTestSuite) TestQueryBaseFee() {
-	s.SetupTest()
 	var (
 		expRes         *types.QueryBaseFeeResponse
 		nw             *network.UnitTestNetwork
@@ -80,7 +79,7 @@ func (s *KeeperTestSuite) TestQueryBaseFee() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.Create)
+			nw = network.NewUnitTestNetwork(s.create, s.options...)
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 			initialBaseFee = nw.App.GetFeeMarketKeeper().GetBaseFee(ctx)
@@ -100,7 +99,6 @@ func (s *KeeperTestSuite) TestQueryBaseFee() {
 }
 
 func (s *KeeperTestSuite) TestQueryBlockGas() {
-	s.SetupTest()
 	var (
 		nw  *network.UnitTestNetwork
 		ctx sdk.Context
@@ -117,7 +115,7 @@ func (s *KeeperTestSuite) TestQueryBlockGas() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.Create)
+			nw = network.NewUnitTestNetwork(s.create, s.options...)
 			ctx = nw.GetContext()
 			qc := nw.GetFeeMarketClient()
 

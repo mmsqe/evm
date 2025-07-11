@@ -1,9 +1,9 @@
-package app
+package evmd
 
 import (
 	"encoding/json"
 
-	testconfig "github.com/cosmos/evm/testutil/config"
+	"github.com/cosmos/evm/evmd/cmd/evmd/config"
 	testconstants "github.com/cosmos/evm/testutil/constants"
 	erc20types "github.com/cosmos/evm/x/erc20/types"
 	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
@@ -50,7 +50,7 @@ func NewErc20GenesisState() *erc20types.GenesisState {
 // NOTE: for the example chain implementation we are also adding a default minter.
 func NewMintGenesisState() *minttypes.GenesisState {
 	mintGenState := minttypes.DefaultGenesisState()
-	mintGenState.Params.MintDenom = testconfig.ExampleChainDenom
+	mintGenState.Params.MintDenom = config.ExampleChainDenom
 
 	return mintGenState
 }

@@ -20,6 +20,11 @@ func TestNestedEVMExtensionCallSuite(t *testing.T) {
 	suite.Run(t, s)
 }
 
+func TestGenesisTestSuite(t *testing.T) {
+	s := vm.NewGenesisTestSuite(CreateEvmd)
+	suite.Run(t, s)
+}
+
 func TestVmAnteTestSuite(t *testing.T) {
 	s := vm.NewEvmAnteTestSuite(CreateEvmd)
 	suite.Run(t, s)

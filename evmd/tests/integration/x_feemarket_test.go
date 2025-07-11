@@ -5,9 +5,10 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/evm/tests/integration/testutil"
+	"github.com/cosmos/evm/tests/integration/x/feemarket"
 )
 
 func TestFeeMarketKeeperTestSuite(t *testing.T) {
-	suite.Run(t, &testutil.BaseTestSuite{Create: CreateEvmd})
+	s := feemarket.NewTestKeeperTestSuite(CreateEvmd)
+	suite.Run(t, s)
 }

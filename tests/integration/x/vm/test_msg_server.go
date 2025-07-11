@@ -1,12 +1,8 @@
-package vm_test
+package vm
 
 import (
 	"math/big"
-	"testing"
 
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	"github.com/cosmos/evm/testutil/integration/evm/utils"
 	"github.com/cosmos/evm/x/vm/types"
 
@@ -15,15 +11,10 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
-type MsgServerTestSuite struct {
-	testutil.BaseTestSuiteWithNetworkAndFactory
-}
-
-func TestMsgServerTestSuite(t *testing.T) {
-	suite.Run(t, new(MsgServerTestSuite))
-}
-
-func (s *MsgServerTestSuite) TestEthereumTx() {
+func (s *KeeperTestSuite) TestEthereumTx() {
+	s.EnableFeemarket = true
+	defer func() { s.EnableFeemarket = false }()
+	s.SetupTest()
 	testCases := []struct {
 		name        string
 		getMsg      func() *types.MsgEthereumTx
@@ -85,9 +76,11 @@ func (s *MsgServerTestSuite) TestEthereumTx() {
 			s.Require().NoError(err)
 		})
 	}
+	s.EnableFeemarket = false
 }
 
-func (s *MsgServerTestSuite) TestUpdateParams() {
+func (s *KeeperTestSuite) TestUpdateParams() {
+	s.SetupTest()
 	testCases := []struct {
 		name        string
 		getMsg      func() *types.MsgUpdateParams
@@ -129,7 +122,8 @@ func (s *MsgServerTestSuite) TestUpdateParams() {
 	}
 }
 
-func (s *MsgServerTestSuite) TestRegisterPreinstalls() {
+func (s *KeeperTestSuite) TestRegisterPreinstalls() {
+	s.SetupTest()
 	testCases := []struct {
 		name        string
 		getMsg      func() *types.MsgRegisterPreinstalls

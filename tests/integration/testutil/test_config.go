@@ -1,11 +1,8 @@
-package utils_test
+//go:build test
+
+package testutil
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/cosmos/evm/tests/integration/testutil"
 	testconstants "github.com/cosmos/evm/testutil/constants"
 	grpchandler "github.com/cosmos/evm/testutil/integration/evm/grpc"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
@@ -18,18 +15,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-type UtilsConfigTestSuite struct {
-	testutil.BaseTestSuite
-}
-
-// Test with `test` build tag to ensure that the test TestChainsCoinInfo constants
-// go test -tags=test -run ^TestUtilsConfigTestSuite$ ./testutil/integration/evm/utils
-func TestUtilsConfigTestSuite(t *testing.T) {
-	suite.Run(t, new(UtilsConfigTestSuite))
-}
-
-func (s *UtilsConfigTestSuite) TestWithChainID() {
-	s.SetupTest()
+func (s *TestSuite) TestWithChainID() {
 	eighteenDecimalsCoinInfo := testconstants.ExampleChainCoinInfo[testconstants.ExampleChainID]
 	sixDecimalsCoinInfo := testconstants.ExampleChainCoinInfo[testconstants.SixDecimalsChainID]
 
@@ -65,7 +51,10 @@ func (s *UtilsConfigTestSuite) TestWithChainID() {
 			network.WithChainID(tc.chainID),
 			network.WithPreFundedAccounts(keyring.GetAllAccAddrs()...),
 		}
-		nw := network.New(s.Create, options...)
+		options = append(options, s.options...)
+
+		nw := network.New(s.create, options...)
+
 		handler := grpchandler.NewIntegrationHandler(nw)
 
 		// ------------------------------------------------------------------------------------
@@ -108,7 +97,7 @@ func (s *UtilsConfigTestSuite) TestWithChainID() {
 	}
 }
 
-func (s *UtilsConfigTestSuite) TestWithBalances() {
+func (s *TestSuite) TestWithBalances() {
 	key1Balance := sdk.NewCoins(sdk.NewInt64Coin(testconstants.ExampleAttoDenom, 1e18))
 	key2Balance := sdk.NewCoins(
 		sdk.NewInt64Coin(testconstants.ExampleAttoDenom, 2e18),
@@ -130,7 +119,8 @@ func (s *UtilsConfigTestSuite) TestWithBalances() {
 	options := []network.ConfigOption{
 		network.WithBalances(balances...),
 	}
-	nw := network.New(s.Create, options...)
+	options = append(options, s.options...)
+	nw := network.New(s.create, options...)
 	handler := grpchandler.NewIntegrationHandler(nw)
 
 	req, err := handler.GetAllBalances(keyring.GetAccAddr(0))

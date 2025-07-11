@@ -1,4 +1,4 @@
-package feemarket_test
+package feemarket
 
 import (
 	"reflect"
@@ -8,7 +8,7 @@ import (
 )
 
 func (s *KeeperTestSuite) TestGetParams() {
-	nw := network.NewUnitTestNetwork(s.Create)
+	nw := network.NewUnitTestNetwork(s.create, s.options...)
 	ctx := nw.GetContext()
 
 	params := nw.App.GetFeeMarketKeeper().GetParams(ctx)
@@ -18,7 +18,7 @@ func (s *KeeperTestSuite) TestGetParams() {
 }
 
 func (s *KeeperTestSuite) TestSetGetParams() {
-	nw := network.NewUnitTestNetwork(s.Create)
+	nw := network.NewUnitTestNetwork(s.create, s.options...)
 	ctx := nw.GetContext()
 
 	params := types.DefaultParams()

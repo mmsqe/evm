@@ -1,4 +1,4 @@
-package feemarket_test
+package feemarket
 
 import (
 	"github.com/cosmos/evm/testutil/integration/evm/network"
@@ -40,7 +40,7 @@ func (s *KeeperTestSuite) TestEndBlock() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			// reset network and context
-			nw = network.NewUnitTestNetwork(s.Create)
+			nw = network.NewUnitTestNetwork(s.create, s.options...)
 			ctx = nw.GetContext()
 
 			params := nw.App.GetFeeMarketKeeper().GetParams(ctx)
