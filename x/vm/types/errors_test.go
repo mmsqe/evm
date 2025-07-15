@@ -3,13 +3,11 @@ package types_test
 import (
 	"testing"
 
-	"github.com/cosmos/evm/x/vm/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
-)
 
-var revertSelector = crypto.Keccak256([]byte("Error(string)"))[:4]
+	"github.com/cosmos/evm/x/vm/types"
+)
 
 func TestNewExecErrorWithReason(t *testing.T) {
 	testCases := []struct {
@@ -33,7 +31,7 @@ func TestNewExecErrorWithReason(t *testing.T) {
 		{
 			"With packable reason but empty reason",
 			"execution reverted",
-			revertSelector,
+			types.RevertSelector,
 			"0x08c379a0",
 		},
 		{
