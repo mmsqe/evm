@@ -293,7 +293,7 @@ func (s *TestSuite) TestSendRawTransaction() {
 	ethTx, bz := s.buildEthereumTx()
 
 	emptyEvmChainIDTx := s.buildEthereumTxWithChainID(nil)
-	invalidChainId := big.NewInt(1)
+	invalidChainID := big.NewInt(1)
 	// Sign the ethTx
 	ethSigner := ethtypes.LatestSigner(s.backend.ChainConfig())
 	err := ethTx.Sign(ethSigner, s.signer)
@@ -334,15 +334,15 @@ func (s *TestSuite) TestSendRawTransaction() {
 			func() []byte {
 				from, priv := utiltx.NewAddrKey()
 				signer := utiltx.NewSigner(priv)
-				invalidEvmChainIDTx := s.buildEthereumTxWithChainID(invalidChainId)
+				invalidEvmChainIDTx := s.buildEthereumTxWithChainID(invalidChainID)
 				invalidEvmChainIDTx.From = from.String()
-				err := invalidEvmChainIDTx.Sign(ethtypes.LatestSignerForChainID(invalidChainId), signer)
+				err := invalidEvmChainIDTx.Sign(ethtypes.LatestSignerForChainID(invalidChainID), signer)
 				s.Require().NoError(err)
 				bytes, _ := rlp.EncodeToBytes(invalidEvmChainIDTx.AsTransaction())
 				return bytes
 			},
 			common.Hash{},
-			fmt.Errorf("incorrect chain-id; expected %d, got %d", config.EVMChainID, invalidChainId).Error(),
+			fmt.Errorf("incorrect chain-id; expected %d, got %d", config.EVMChainID, invalidChainID).Error(),
 			false,
 		},
 		{
