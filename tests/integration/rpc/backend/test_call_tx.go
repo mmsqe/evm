@@ -14,7 +14,7 @@ import (
 
 	"github.com/cosmos/evm/rpc/backend/mocks"
 	rpctypes "github.com/cosmos/evm/rpc/types"
-	"github.com/cosmos/evm/testutil/config"
+	"github.com/cosmos/evm/testutil/constants"
 	utiltx "github.com/cosmos/evm/testutil/tx"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
@@ -342,7 +342,7 @@ func (s *TestSuite) TestSendRawTransaction() {
 				return bytes
 			},
 			common.Hash{},
-			fmt.Errorf("incorrect chain-id; expected %d, got %d", config.EVMChainID, invalidChainID).Error(),
+			fmt.Errorf("incorrect chain-id; expected %d, got %d", constants.ExampleChainID.EVMChainID, invalidChainID).Error(),
 			false,
 		},
 		{
