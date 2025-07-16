@@ -171,7 +171,7 @@ func (s *TestSuite) buildFormattedBlock(
 	if tx != nil {
 		if fullTx {
 			rpcTx, err := rpctypes.NewRPCTransaction(
-				tx.AsTransaction(),
+				tx,
 				common.BytesToHash(header.Hash()),
 				uint64(header.Height), //nolint:gosec // G115 // won't exceed uint64
 				uint64(0),

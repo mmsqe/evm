@@ -83,7 +83,7 @@ func SignatureVerification(
 		}
 	}
 
-	if err := msg.VerifySender(ethCfg.ChainID); err != nil {
+	if err := msg.VerifySender(signer); err != nil {
 		return errorsmod.Wrapf(errortypes.ErrorInvalidSigner, "signature verification failed: %s", err.Error())
 	}
 	return nil
