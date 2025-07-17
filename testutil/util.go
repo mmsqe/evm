@@ -117,6 +117,23 @@ func CreateTx(ctx context.Context, txCfg client.TxConfig, priv cryptotypes.PrivK
 	return txBuilder.GetTx(), nil
 }
 
+// DecodeRevertReason extracts and decodes the human-readable revert reason from an EVM transaction response.
+// It processes the raw return data (Ret field) from a failed EVM transaction and attempts to decode
+// any ABI-encoded revert messages into readable error strings.
+//
+// Returns:
+//   - error: A formatted error containing either:
+//   - "tx failed with VmError: <vmError>: <decoded_reason>" for successfully decoded reverts
+//   - "tx failed with VmError: <vmError>: <hex_data>" for non-decodable data
+//   - "failed to decode revert data: <decode_error>" if decoding fails
+//
+// Example usage:
+//
+//	res, err := executeTransaction(...)
+//	if res.VmError != "" {
+//	    decodedErr := DecodeRevertReason(res)
+//	    // decodedErr might be: "tx failed with VmError: execution reverted: ERC20: insufficient allowance"
+//	}
 func DecodeRevertReason(evmRes evmtypes.MsgEthereumTxResponse) error {
 	revertErr := evmtypes.NewExecErrorWithReason(evmRes.Ret)
 	hexData, ok := revertErr.ErrorData().(string)
