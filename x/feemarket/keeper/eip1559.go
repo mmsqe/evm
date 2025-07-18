@@ -77,7 +77,7 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) sdkmath.LegacyDec {
 		y := x.QuoInt(parentGasTargetInt)
 		baseFeeDelta := sdkmath.LegacyMaxDec(
 			y.QuoInt(baseFeeChangeDenominator),
-			sdkmath.LegacyNewDecFromInt(sdkmath.OneInt().Quo(evmtypes.GetEVMCoinDecimals().ConversionFactor())),
+			sdkmath.LegacyNewDec(1).QuoInt(evmtypes.GetEVMCoinDecimals().ConversionFactor()),
 		)
 
 		return parentBaseFee.Add(baseFeeDelta)
