@@ -151,8 +151,8 @@ func CalcBaseFee(config *params.ChainConfig, parent *ethtypes.Header, p feemarke
 	num.Div(num, denom.SetUint64(parentGasTarget))
 	num.Div(num, denom.SetUint64(uint64(p.BaseFeeChangeDenominator)))
 	baseFee := num.Sub(parent.BaseFee, num)
-	oneInBaseUnit := sdkmath.LegacyNewDecFromInt(evmtypes.GetEVMCoinDecimals().ConversionFactor())
-	minGasPrice := p.MinGasPrice.Mul(oneInBaseUnit).TruncateInt().BigInt()
+	factor := sdkmath.LegacyNewDecFromInt(evmtypes.GetEVMCoinDecimals().ConversionFactor())
+	minGasPrice := p.MinGasPrice.Mul(factor).TruncateInt().BigInt()
 	return bigMax(baseFee, minGasPrice), nil
 }
 
