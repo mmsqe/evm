@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime/pprof"
-	"time"
 
 	ethmetricsexp "github.com/ethereum/go-ethereum/metrics/exp"
 	"github.com/spf13/cobra"
@@ -122,7 +120,9 @@ which accepts a path for the resulting pprof file.
 			withTM, _ := cmd.Flags().GetBool(srvflags.WithCometBFT)
 			if !withTM {
 				serverCtx.Logger.Info("starting ABCI without Tendermint")
-				return startStandAlone(serverCtx, opts)
+				return wrapCPUProfile(serverCtx, func() error {
+					return startStandAlone(serverCtx, opts)
+				})
 			}
 
 			serverCtx.Logger.Info("Unlocking keyring")
@@ -139,14 +139,11 @@ which accepts a path for the resulting pprof file.
 			serverCtx.Logger.Info("starting ABCI with CometBFT")
 
 			// amino is needed here for backwards compatibility of REST routes
-			if err := startInProcess(serverCtx, clientCtx, opts); err != nil {
-				return err
-			}
-
-			serverCtx.Logger.Debug("received quit signal")
-			// TODO: why is this check here? Should not make sense since err is checked above
+			err = wrapCPUProfile(serverCtx, func() error {
+				return startInProcess(serverCtx, clientCtx, opts)
+			})
 			if err != nil {
-				serverCtx.Logger.Error(fmt.Sprintf("error on quit: %s", err.Error()))
+				return err
 			}
 
 			return nil
@@ -465,27 +462,11 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 		defer grpcSrv.GracefulStop()
 	}
 
-	apiSrv := startAPIServer(ctx, svrCtx, clientCtx, g, config.Config, app, grpcSrv, metrics)
+	startAPIServer(ctx, svrCtx, clientCtx, g, config.Config, app, grpcSrv, metrics)
 
-	if apiSrv != nil {
-		defer apiSrv.Close()
-	}
-
-	clientCtx, httpSrv, httpSrvDone, err := startJSONRPCServer(svrCtx, clientCtx, g, config, genDocProvider, cfg.RPC.ListenAddress, idxer)
-	if httpSrv != nil {
-		defer func() {
-			shutdownCtx, cancelFn := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancelFn()
-			if err := httpSrv.Shutdown(shutdownCtx); err != nil {
-				logger.Error("HTTP server shutdown produced a warning", "error", err.Error())
-			} else {
-				logger.Info("HTTP server shut down, waiting 5 sec")
-				select {
-				case <-time.Tick(5 * time.Second):
-				case <-httpSrvDone:
-				}
-			}
-		}()
+	clientCtx, err = startJSONRPCServer(ctx, svrCtx, clientCtx, g, config, genDocProvider, cfg.RPC.ListenAddress, idxer)
+	if err != nil {
+		return err
 	}
 
 	// At this point it is safe to block the process if we're in query only mode as
@@ -528,6 +509,36 @@ func startTelemetry(cfg cosmosevmserverconfig.Config) (*telemetry.Metrics, error
 		return nil, nil
 	}
 	return telemetry.New(cfg.Telemetry)
+}
+
+// wrapCPUProfile runs callback in a goroutine, then wait for quit signals.
+func wrapCPUProfile(ctx *server.Context, callback func() error) error {
+	if cpuProfile := ctx.Viper.GetString(srvflags.CPUProfile); cpuProfile != "" {
+		fp, err := ethdebug.ExpandHome(cpuProfile)
+		if err != nil {
+			ctx.Logger.Debug("failed to get filepath for the CPU profile file", "error", err.Error())
+			return err
+		}
+		f, err := os.Create(fp)
+		if err != nil {
+			return err
+		}
+
+		ctx.Logger.Info("starting CPU profiler", "profile", cpuProfile)
+		if err := pprof.StartCPUProfile(f); err != nil {
+			return err
+		}
+
+		defer func() {
+			ctx.Logger.Info("stopping CPU profiler", "profile", cpuProfile)
+			pprof.StopCPUProfile()
+			if err := f.Close(); err != nil {
+				ctx.Logger.Info("failed to close cpu-profile file", "profile", cpuProfile, "err", err.Error())
+			}
+		}()
+	}
+
+	return callback()
 }
 
 func getCtx(svrCtx *server.Context, block bool) (*errgroup.Group, context.Context) {
@@ -616,9 +627,9 @@ func startAPIServer(
 	app types.Application,
 	grpcSrv *grpc.Server,
 	metrics *telemetry.Metrics,
-) *api.Server {
+) {
 	if !svrCfg.API.Enable {
-		return nil
+		return
 	}
 
 	apiSrv := api.New(clientCtx, svrCtx.Logger.With("server", "api"), grpcSrv)
@@ -631,7 +642,6 @@ func startAPIServer(
 	g.Go(func() error {
 		return apiSrv.Start(ctx, svrCfg)
 	})
-	return apiSrv
 }
 
 // startJSONRPCServer starts a JSON-RPC server based on the provided configuration.
@@ -644,6 +654,7 @@ func startAPIServer(
 // - cmtRPCAddr: The address of the CometBFT RPC server for WebSocket connections.
 // - idxer: The EVM transaction indexer for indexing transactions.
 func startJSONRPCServer(
+	stdCtx context.Context,
 	svrCtx *server.Context,
 	clientCtx client.Context,
 	g *errgroup.Group,
@@ -651,7 +662,7 @@ func startJSONRPCServer(
 	genDocProvider node.GenesisDocProvider,
 	cmtRPCAddr string,
 	idxer cosmosevmtypes.EVMTxIndexer,
-) (ctx client.Context, httpSrv *http.Server, httpSrvDone chan struct{}, err error) {
+) (ctx client.Context, err error) {
 	ctx = clientCtx
 	if !config.JSONRPC.Enable {
 		return
@@ -659,15 +670,12 @@ func startJSONRPCServer(
 
 	genDoc, err := genDocProvider()
 	if err != nil {
-		return ctx, httpSrv, httpSrvDone, err
+		return ctx, err
 	}
 
 	ctx = clientCtx.WithChainID(genDoc.ChainID)
 	cmtEndpoint := "/websocket"
-	g.Go(func() error {
-		httpSrv, httpSrvDone, err = StartJSONRPC(svrCtx, clientCtx, cmtRPCAddr, cmtEndpoint, &config, idxer)
-		return err
-	})
+	_, err = StartJSONRPC(stdCtx, svrCtx, clientCtx, g, cmtRPCAddr, cmtEndpoint, &config, idxer)
 	return
 }
 
