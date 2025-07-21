@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/txpool"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	protov2 "google.golang.org/protobuf/proto"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	"github.com/ethereum/go-ethereum/core/txpool"
 )
 
 var (
@@ -71,9 +71,8 @@ func NewTxFromTransactionArgs(args *TransactionArgs) *MsgEthereumTx {
 }
 
 // FromEthereumTx populates the message fields from the given ethereum transaction
-func (msg *MsgEthereumTx) FromEthereumTx(tx *ethtypes.Transaction) error {
+func (msg *MsgEthereumTx) FromEthereumTx(tx *ethtypes.Transaction) {
 	msg.Raw = EthereumTx{tx}
-	return nil
 }
 
 // FromSignedEthereumTx populates the message fields from the given signed ethereum transaction, and set From field.
@@ -185,7 +184,8 @@ func (msg *MsgEthereumTx) Sign(ethSigner ethtypes.Signer, keyringSigner keyring.
 		return err
 	}
 
-	return msg.FromEthereumTx(tx)
+	msg.FromEthereumTx(tx)
+	return nil
 }
 
 // GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
@@ -241,7 +241,8 @@ func (msg *MsgEthereumTx) UnmarshalBinary(b []byte) error {
 	if err := tx.UnmarshalBinary(b); err != nil {
 		return err
 	}
-	return msg.FromEthereumTx(tx)
+	msg.FromEthereumTx(tx)
+	return nil
 }
 
 func (msg *MsgEthereumTx) Hash() common.Hash {

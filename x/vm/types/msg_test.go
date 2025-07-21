@@ -26,8 +26,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const invalidAddress = "0x0000"
-
 type MsgsTestSuite struct {
 	suite.Suite
 

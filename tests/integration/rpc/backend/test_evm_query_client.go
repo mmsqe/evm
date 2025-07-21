@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	proto "github.com/cosmos/gogoproto/proto"
 	"github.com/ethereum/go-ethereum/common"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -22,6 +21,7 @@ import (
 	"github.com/cosmos/evm/testutil/config"
 	utiltx "github.com/cosmos/evm/testutil/tx"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
+	proto "github.com/cosmos/gogoproto/proto"
 
 	"cosmossdk.io/math"
 

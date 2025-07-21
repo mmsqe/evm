@@ -3,10 +3,12 @@ package types
 import (
 	"encoding/json"
 
-	errorsmod "cosmossdk.io/errors"
-	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	errorsmod "cosmossdk.io/errors"
+
+	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 type EthereumTx struct {
@@ -21,7 +23,7 @@ func (tx EthereumTx) Size() int {
 	if tx.Transaction == nil {
 		return 0
 	}
-	return int(tx.Transaction.Size())
+	return int(tx.Transaction.Size()) //nolint:gosec
 }
 
 func (tx EthereumTx) MarshalTo(dst []byte) (int, error) {

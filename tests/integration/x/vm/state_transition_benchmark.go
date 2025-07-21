@@ -125,11 +125,7 @@ func newEthMsgTx(
 	}
 
 	msg := &evmtypes.MsgEthereumTx{}
-	err := msg.FromEthereumTx(ethTx)
-	if err != nil {
-		return nil, nil, err
-	}
-
+	msg.FromEthereumTx(ethTx)
 	msg.From = address.Bytes()
 
 	return msg, baseFee, msg.Sign(ethSigner, krSigner)

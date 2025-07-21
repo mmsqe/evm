@@ -3,7 +3,6 @@ package distribution
 import (
 	"github.com/stretchr/testify/suite"
 
-	sdkmath "cosmossdk.io/math"
 	"github.com/cosmos/evm/precompiles/distribution"
 	testconstants "github.com/cosmos/evm/testutil/constants"
 	"github.com/cosmos/evm/testutil/integration/evm/factory"
@@ -13,6 +12,7 @@ import (
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
 	"cosmossdk.io/math"
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec/address"
 	sdk "github.com/cosmos/cosmos-sdk/types"

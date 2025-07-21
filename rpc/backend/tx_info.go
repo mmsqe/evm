@@ -26,7 +26,6 @@ import (
 // GetTransactionByHash returns the Ethereum format transaction identified by Ethereum transaction hash
 func (b *Backend) GetTransactionByHash(txHash common.Hash) (*rpctypes.RPCTransaction, error) {
 	res, err := b.GetTxByEthHash(txHash)
-
 	if err != nil {
 		return b.GetTransactionByHashPending(txHash)
 	}
