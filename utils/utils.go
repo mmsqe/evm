@@ -185,13 +185,6 @@ func Uint256FromBigInt(i *big.Int) (*uint256.Int, error) {
 	return result, nil
 }
 
-func bigMax(x, y *big.Int) *big.Int {
-	if x.Cmp(y) < 0 {
-		return y
-	}
-	return x
-}
-
 // CalcBaseFee calculates the basefee of the header.
 func CalcBaseFee(config *params.ChainConfig, parent *ethtypes.Header, p feemarkettypes.Params) (*big.Int, error) {
 	// If the current block is the first EIP-1559 block, return the InitialBaseFee.
@@ -202,36 +195,38 @@ func CalcBaseFee(config *params.ChainConfig, parent *ethtypes.Header, p feemarke
 		return nil, errors.New("ElasticityMultiplier cannot be 0 as it's checked in the params validation")
 	}
 	parentGasTarget := parent.GasLimit / uint64(p.ElasticityMultiplier)
+
+	factor := evmtypes.GetEVMCoinDecimals().ConversionFactor()
+	minGasPrice := p.MinGasPrice.Mul(sdkmath.LegacyNewDecFromInt(factor))
+	return CalcGasBaseFee(
+		parent.GasUsed, parentGasTarget, uint64(p.BaseFeeChangeDenominator),
+		sdkmath.LegacyNewDecFromBigInt(parent.BaseFee), sdkmath.LegacyOneDec(), minGasPrice,
+	).TruncateInt().BigInt(), nil
+}
+
+func CalcGasBaseFee(gasUsed, gasTarget, baseFeeChangeDenom uint64, baseFee, minUnitGas, minGasPrice sdkmath.LegacyDec) sdkmath.LegacyDec {
 	// If the parent gasUsed is the same as the target, the baseFee remains unchanged.
-	if parent.GasUsed == parentGasTarget {
-		return new(big.Int).Set(parent.BaseFee), nil
+	if gasUsed == gasTarget {
+		return baseFee
 	}
 
-	var (
-		num   = new(big.Int)
-		denom = new(big.Int)
-	)
+	if gasTarget == 0 {
+		return sdkmath.LegacyZeroDec()
+	}
 
-	if parent.GasUsed > parentGasTarget {
+	num := sdkmath.LegacyNewDecFromInt(sdkmath.NewIntFromUint64(gasUsed).Sub(sdkmath.NewIntFromUint64(gasTarget)).Abs())
+	num = num.Mul(baseFee)
+	num = num.QuoInt(sdkmath.NewIntFromUint64(gasTarget))
+	num = num.QuoInt(sdkmath.NewIntFromUint64(baseFeeChangeDenom))
+
+	if gasUsed > gasTarget {
 		// If the parent block used more gas than its target, the baseFee should increase.
 		// max(1, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
-		num.SetUint64(parent.GasUsed - parentGasTarget)
-		num.Mul(num, parent.BaseFee)
-		num.Div(num, denom.SetUint64(parentGasTarget))
-		num.Div(num, denom.SetUint64(uint64(p.BaseFeeChangeDenominator)))
-		baseFeeDelta := bigMax(num, common.Big1)
-
-		return num.Add(parent.BaseFee, baseFeeDelta), nil
+		baseFeeDelta := sdkmath.LegacyMaxDec(num, minUnitGas)
+		return baseFee.Add(baseFeeDelta)
 	}
 
 	// Otherwise if the parent block used less gas than its target, the baseFee should decrease.
-	// max(0, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
-	num.SetUint64(parentGasTarget - parent.GasUsed)
-	num.Mul(num, parent.BaseFee)
-	num.Div(num, denom.SetUint64(parentGasTarget))
-	num.Div(num, denom.SetUint64(uint64(p.BaseFeeChangeDenominator)))
-	baseFee := num.Sub(parent.BaseFee, num)
-	factor := evmtypes.GetEVMCoinDecimals().ConversionFactor()
-	minGasPrice := p.MinGasPrice.Mul(sdkmath.LegacyNewDecFromInt(factor)).TruncateInt().BigInt()
-	return bigMax(baseFee, minGasPrice), nil
+	// max(minGasPrice, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
+	return sdkmath.LegacyMaxDec(baseFee.Sub(num), minGasPrice)
 }
