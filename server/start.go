@@ -470,9 +470,12 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 
 	startAPIServer(ctx, svrCtx, clientCtx, g, config.Config, app, grpcSrv, metrics)
 
-	clientCtx, err = startJSONRPCServer(ctx, svrCtx, clientCtx, g, config, genDocProvider, cfg.RPC.ListenAddress, idxer)
-	if err != nil {
-		return err
+	if config.JSONRPC.Enable {
+		cmtEndpoint := "/websocket"
+		_, err = StartJSONRPC(ctx, svrCtx, clientCtx, g, cmtEndpoint, cmtEndpoint, &config, idxer)
+		if err != nil {
+			return err
+		}
 	}
 
 	// At this point it is safe to block the process if we're in query only mode as
@@ -648,41 +651,6 @@ func startAPIServer(
 	g.Go(func() error {
 		return apiSrv.Start(ctx, svrCfg)
 	})
-}
-
-// startJSONRPCServer starts a JSON-RPC server based on the provided configuration.
-// Parameters:
-// - svrCtx: The server context containing configuration, logger, and stateful components.
-// - clientCtx: The client context, which may be updated with additional chain information.
-// - g: An errgroup.Group to manage concurrent goroutines and error handling.
-// - config: The server configuration that specifies whether the JSON-RPC server is enabled and other settings.
-// - genDocProvider: A function that provides the Genesis document, used to retrieve the chain ID.
-// - cmtRPCAddr: The address of the CometBFT RPC server for WebSocket connections.
-// - idxer: The EVM transaction indexer for indexing transactions.
-func startJSONRPCServer(
-	stdCtx context.Context,
-	svrCtx *server.Context,
-	clientCtx client.Context,
-	g *errgroup.Group,
-	config cosmosevmserverconfig.Config,
-	genDocProvider node.GenesisDocProvider,
-	cmtRPCAddr string,
-	idxer cosmosevmtypes.EVMTxIndexer,
-) (ctx client.Context, err error) {
-	ctx = clientCtx
-	if !config.JSONRPC.Enable {
-		return
-	}
-
-	genDoc, err := genDocProvider()
-	if err != nil {
-		return ctx, err
-	}
-
-	ctx = clientCtx.WithChainID(genDoc.ChainID)
-	cmtEndpoint := "/websocket"
-	_, err = StartJSONRPC(stdCtx, svrCtx, clientCtx, g, cmtRPCAddr, cmtEndpoint, &config, idxer)
-	return
 }
 
 // GenDocProvider returns a function which returns the genesis doc from the genesis file.
