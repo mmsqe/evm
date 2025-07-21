@@ -242,7 +242,11 @@ func startStandAlone(svrCtx *server.Context, opts StartOptions) error {
 	}
 
 	app := opts.AppCreator(svrCtx.Logger, db, traceWriter, svrCtx.Viper)
-
+	defer func() {
+		if err := app.Close(); err != nil {
+			svrCtx.Logger.Error("close application failed", "error", err.Error())
+		}
+	}()
 	config, err := cosmosevmserverconfig.GetConfig(svrCtx.Viper)
 	if err != nil {
 		svrCtx.Logger.Error("failed to get server config", "error", err.Error())
@@ -348,6 +352,11 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 	}
 
 	app := opts.AppCreator(svrCtx.Logger, db, traceWriter, svrCtx.Viper)
+	defer func() {
+		if err := app.Close(); err != nil {
+			logger.Error("close application failed", "error", err.Error())
+		}
+	}()
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
