@@ -105,7 +105,8 @@ func VerifyFee(
 			baseFee)
 	}
 
-	price := new(big.Int).Add(txData.EffectiveGasTipValue(baseFee), baseFee)
+	gasTip, _ := txData.EffectiveGasTip(baseFee)
+	price := new(big.Int).Add(gasTip, baseFee)
 	gas := new(big.Int).SetUint64(txData.Gas())
 	feeAmt := gas.Mul(gas, price)
 	if feeAmt.Sign() == 0 {

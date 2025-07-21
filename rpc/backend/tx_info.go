@@ -267,7 +267,8 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 			// tolerate the error for pruned node.
 			b.Logger.Error("fetch basefee failed, node is pruned?", "height", res.Height, "error", err)
 		} else {
-			effectiveGasPrice := new(big.Int).Add(txData.EffectiveGasTipValue(baseFee), baseFee)
+			gasTip, _ := txData.EffectiveGasTip(baseFee)
+			effectiveGasPrice := new(big.Int).Add(gasTip, baseFee)
 			receipt["effectiveGasPrice"] = hexutil.Big(*effectiveGasPrice)
 		}
 	}

@@ -202,7 +202,8 @@ func (msg MsgEthereumTx) GetFee() *big.Int {
 // GetEffectiveFee returns the fee for dynamic fee tx
 func (msg MsgEthereumTx) GetEffectiveFee(baseFee *big.Int) *big.Int {
 	i := new(big.Int).SetUint64(msg.Raw.Gas())
-	effectiveGasPrice := new(big.Int).Add(msg.Raw.EffectiveGasTipValue(baseFee), baseFee)
+	gasTip, _ := msg.Raw.EffectiveGasTip(baseFee)
+	effectiveGasPrice := new(big.Int).Add(gasTip, baseFee)
 	return i.Mul(i, effectiveGasPrice)
 }
 

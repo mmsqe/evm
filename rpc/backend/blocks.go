@@ -647,7 +647,8 @@ func (b *Backend) formatTxReceipt(ethMsg *evmtypes.MsgEthereumTx, blockMsgs []*e
 			// tolerate the error for pruned node.
 			b.Logger.Error("fetch basefee failed, node is pruned?", "height", txResult.Height, "error", err)
 		} else {
-			effectiveGasPrice := new(big.Int).Add(txData.EffectiveGasTipValue(baseFee), baseFee)
+			gasTip, _ := txData.EffectiveGasTip(baseFee)
+			effectiveGasPrice := new(big.Int).Add(gasTip, baseFee)
 			receipt["effectiveGasPrice"] = hexutil.Big(*effectiveGasPrice)
 		}
 	}

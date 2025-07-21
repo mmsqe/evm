@@ -52,7 +52,7 @@ func (args *EvmTxArgs) ToTx() *ethtypes.Transaction {
 //	tx_priority = tip_price / priority_reduction
 func GetTxPriority(txData *ethtypes.Transaction, baseFee *big.Int) (priority int64) {
 	// calculate priority based on effective gas price
-	tipPrice := txData.EffectiveGasTipValue(baseFee)
+	tipPrice, _ := txData.EffectiveGasTip(baseFee)
 	priority = math.MaxInt64
 	priorityBig := new(big.Int).Quo(tipPrice, DefaultPriorityReduction.BigInt())
 
