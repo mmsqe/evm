@@ -22,6 +22,7 @@ import (
 // - account balance is lower than the transaction cost
 func VerifyAccountBalance(
 	ctx sdk.Context,
+	evmKeeper anteinterfaces.EVMKeeper,
 	accountKeeper anteinterfaces.AccountKeeper,
 	account *statedb.Account,
 	from common.Address,
@@ -29,12 +30,16 @@ func VerifyAccountBalance(
 ) error {
 	// Only EOA are allowed to send transactions.
 	if account != nil && account.IsContract() {
-		return errorsmod.Wrapf(
-			errortypes.ErrInvalidType,
-			"the sender is not EOA: address %s", from,
-		)
+		// check eip-7702
+		code := evmKeeper.GetCode(ctx, common.BytesToHash(account.CodeHash))
+		_, delegated := ethtypes.ParseDelegation(code)
+		if len(code) > 0 && !delegated {
+			return errorsmod.Wrapf(
+				errortypes.ErrInvalidType,
+				"the sender is not EOA: address %s", from,
+			)
+		}
 	}
-
 	if account == nil {
 		acc := accountKeeper.NewAccountWithAddress(ctx, from.Bytes())
 		accountKeeper.SetAccount(ctx, acc)

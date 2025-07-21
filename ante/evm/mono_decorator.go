@@ -146,6 +146,7 @@ func (md MonoDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 	account := md.evmKeeper.GetAccount(ctx, fromAddr)
 	if err := VerifyAccountBalance(
 		ctx,
+		md.evmKeeper,
 		md.accountKeeper,
 		account,
 		fromAddr,
