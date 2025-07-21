@@ -226,9 +226,12 @@ func startStandAlone(svrCtx *server.Context, opts StartOptions) error {
 		return err
 	}
 
+	var app types.Application
 	defer func() {
-		if err := db.Close(); err != nil {
-			svrCtx.Logger.Error("error closing db", "error", err.Error())
+		if app == nil {
+			if err := db.Close(); err != nil {
+				svrCtx.Logger.Error("error closing db", "error", err.Error())
+			}
 		}
 	}()
 
@@ -238,7 +241,7 @@ func startStandAlone(svrCtx *server.Context, opts StartOptions) error {
 		return err
 	}
 
-	app := opts.AppCreator(svrCtx.Logger, db, traceWriter, svrCtx.Viper)
+	app = opts.AppCreator(svrCtx.Logger, db, traceWriter, svrCtx.Viper)
 	defer func() {
 		if err := app.Close(); err != nil {
 			svrCtx.Logger.Error("close application failed", "error", err.Error())
@@ -324,9 +327,12 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 		return err
 	}
 
+	var app types.Application
 	defer func() {
-		if err := db.Close(); err != nil {
-			svrCtx.Logger.With("error", err).Error("error closing db")
+		if app == nil {
+			if err := db.Close(); err != nil {
+				svrCtx.Logger.Error("error closing db", "error", err.Error())
+			}
 		}
 	}()
 
@@ -348,7 +354,7 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 		return err
 	}
 
-	app := opts.AppCreator(svrCtx.Logger, db, traceWriter, svrCtx.Viper)
+	app = opts.AppCreator(svrCtx.Logger, db, traceWriter, svrCtx.Viper)
 	defer func() {
 		if err := app.Close(); err != nil {
 			logger.Error("close application failed", "error", err.Error())
