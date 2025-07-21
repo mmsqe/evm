@@ -117,6 +117,7 @@ func (s *EvmUnitAnteTestSuite) TestVerifyAccountBalance() {
 			//  Function to be tested
 			err := evm.VerifyAccountBalance(
 				unitNetwork.GetContext(),
+				unitNetwork.App.GetEVMKeeper(),
 				unitNetwork.App.GetAccountKeeper(),
 				statedbAccount,
 				senderKey.Addr,
