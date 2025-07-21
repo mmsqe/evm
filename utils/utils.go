@@ -8,12 +8,18 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
 	"github.com/cosmos/evm/crypto/ethsecp256k1"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
+	evmtypes "github.com/cosmos/evm/x/vm/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -177,4 +183,55 @@ func Uint256FromBigInt(i *big.Int) (*uint256.Int, error) {
 		return nil, fmt.Errorf("overflow trying to convert *big.Int (%d) to uint256.Int (%s)", i, result)
 	}
 	return result, nil
+}
+
+func bigMax(x, y *big.Int) *big.Int {
+	if x.Cmp(y) < 0 {
+		return y
+	}
+	return x
+}
+
+// CalcBaseFee calculates the basefee of the header.
+func CalcBaseFee(config *params.ChainConfig, parent *ethtypes.Header, p feemarkettypes.Params) (*big.Int, error) {
+	// If the current block is the first EIP-1559 block, return the InitialBaseFee.
+	if !config.IsLondon(parent.Number) {
+		return new(big.Int).SetUint64(params.InitialBaseFee), nil
+	}
+	if p.ElasticityMultiplier == 0 {
+		return nil, errors.New("ElasticityMultiplier cannot be 0 as it's checked in the params validation")
+	}
+	parentGasTarget := parent.GasLimit / uint64(p.ElasticityMultiplier)
+	// If the parent gasUsed is the same as the target, the baseFee remains unchanged.
+	if parent.GasUsed == parentGasTarget {
+		return new(big.Int).Set(parent.BaseFee), nil
+	}
+
+	var (
+		num   = new(big.Int)
+		denom = new(big.Int)
+	)
+
+	if parent.GasUsed > parentGasTarget {
+		// If the parent block used more gas than its target, the baseFee should increase.
+		// max(1, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
+		num.SetUint64(parent.GasUsed - parentGasTarget)
+		num.Mul(num, parent.BaseFee)
+		num.Div(num, denom.SetUint64(parentGasTarget))
+		num.Div(num, denom.SetUint64(uint64(p.BaseFeeChangeDenominator)))
+		baseFeeDelta := bigMax(num, common.Big1)
+
+		return num.Add(parent.BaseFee, baseFeeDelta), nil
+	}
+
+	// Otherwise if the parent block used less gas than its target, the baseFee should decrease.
+	// max(0, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
+	num.SetUint64(parentGasTarget - parent.GasUsed)
+	num.Mul(num, parent.BaseFee)
+	num.Div(num, denom.SetUint64(parentGasTarget))
+	num.Div(num, denom.SetUint64(uint64(p.BaseFeeChangeDenominator)))
+	baseFee := num.Sub(parent.BaseFee, num)
+	factor := evmtypes.GetEVMCoinDecimals().ConversionFactor()
+	minGasPrice := p.MinGasPrice.Mul(sdkmath.LegacyNewDecFromInt(factor)).TruncateInt().BigInt()
+	return bigMax(baseFee, minGasPrice), nil
 }
