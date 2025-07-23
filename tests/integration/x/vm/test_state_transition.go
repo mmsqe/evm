@@ -790,6 +790,7 @@ func (s *KeeperTestSuite) TestApplyMessageWithConfig() {
 				true,
 				config,
 				txConfig,
+				nil,
 			)
 
 			if tc.expErr {
