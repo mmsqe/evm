@@ -23,6 +23,9 @@ type EvmTxArgs struct {
 	GasTipCap *big.Int
 	To        *common.Address
 	Accesses  *ethtypes.AccessList
+
+	// For SetCodeTxType
+	AuthorizationList []ethtypes.SetCodeAuthorization `json:"authorizationList"`
 }
 
 // ToTxData converts the EvmTxArgs to TxData
@@ -38,6 +41,7 @@ func (args *EvmTxArgs) ToTxData() *TransactionArgs {
 		Value:                (*hexutil.Big)(args.Amount),
 		To:                   args.To,
 		AccessList:           args.Accesses,
+		AuthorizationList:    args.AuthorizationList,
 	}
 }
 
