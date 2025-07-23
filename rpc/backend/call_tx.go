@@ -327,7 +327,7 @@ func (b *Backend) EstimateGas(args evmtypes.TransactionArgs, blockNrOptional *rp
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (b *Backend) DoCall(
-	args evmtypes.TransactionArgs, blockNr rpctypes.BlockNumber, overrides *rpctypes.StateOverride,
+	args evmtypes.TransactionArgs, blockNr rpctypes.BlockNumber, overrides *json.RawMessage,
 ) (*evmtypes.MsgEthereumTxResponse, error) {
 	bz, err := json.Marshal(&args)
 	if err != nil {
@@ -339,12 +339,9 @@ func (b *Backend) DoCall(
 		return nil, errors.New("header not found")
 	}
 
-	var overridesJSON []byte
+	var bzOverrides []byte
 	if overrides != nil {
-		overridesJSON, err = json.Marshal(overrides)
-		if err != nil {
-			return nil, err
-		}
+		bzOverrides = *overrides
 	}
 
 	req := evmtypes.EthCallRequest{
@@ -352,7 +349,7 @@ func (b *Backend) DoCall(
 		GasCap:          b.RPCGasCap(),
 		ProposerAddress: sdk.ConsAddress(header.Block.ProposerAddress),
 		ChainId:         b.EvmChainID.Int64(),
-		Overrides:       overridesJSON,
+		Overrides:       bzOverrides,
 	}
 
 	// From ContextWithHeight: if the provided height is 0,
