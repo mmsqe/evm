@@ -395,7 +395,9 @@ func (k *Keeper) ApplyMessageWithConfig(
 		if msg.SetCodeAuthorizations != nil {
 			for _, auth := range msg.SetCodeAuthorizations {
 				// Note errors are ignored, we simply skip invalid authorizations here.
-				k.applyAuthorization(&auth, stateDB, ethCfg.ChainID) //nolint:errcheck
+				if err := k.applyAuthorization(&auth, stateDB, ethCfg.ChainID); err != nil {
+					k.Logger(ctx).Debug("failed to apply authorization", "error", err, "authorization", auth)
+				}
 			}
 		}
 
