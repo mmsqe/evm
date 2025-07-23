@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	utiltx "github.com/cosmos/evm/testutil/tx"
@@ -42,6 +43,16 @@ var templateDynamicFeeTx = &ethtypes.DynamicFeeTx{
 	To:        &common.Address{},
 	Value:     big.NewInt(0),
 	Data:      []byte{},
+}
+
+var templateSetCodeTx = &ethtypes.SetCodeTx{
+	GasFeeCap: uint256.NewInt(10),
+	GasTipCap: uint256.NewInt(2),
+	Gas:       21000,
+	To:        common.Address{},
+	Value:     uint256.NewInt(0),
+	Data:      []byte{},
+	AuthList:  []ethtypes.SetCodeAuthorization{},
 }
 
 func newSignedEthTx(
@@ -87,6 +98,7 @@ func newEthMsgTx(
 	txType byte,
 	data []byte,
 	accessList ethtypes.AccessList,
+	authList []ethtypes.SetCodeAuthorization,
 ) (*evmtypes.MsgEthereumTx, *big.Int, error) {
 	var (
 		ethTx   *ethtypes.Transaction
@@ -120,6 +132,17 @@ func newEthMsgTx(
 		templateAccessListTx.AccessList = accessList
 		ethTx = ethtypes.NewTx(templateDynamicFeeTx)
 		baseFee = big.NewInt(3)
+	case ethtypes.SetCodeTxType:
+		templateSetCodeTx.Nonce = nonce
+
+		if data != nil {
+			templateSetCodeTx.Data = data
+		} else {
+			templateSetCodeTx.Data = []byte{}
+		}
+		templateSetCodeTx.AuthList = authList
+		ethTx = ethtypes.NewTx(templateSetCodeTx)
+		baseFee = big.NewInt(3)
 	default:
 		return nil, baseFee, errors.New("unsupported tx type")
 	}
@@ -141,10 +164,11 @@ func newNativeMessage(
 	txType byte,
 	data []byte,
 	accessList ethtypes.AccessList,
+	authorizationList []ethtypes.SetCodeAuthorization,
 ) (*core.Message, error) {
 	msgSigner := ethtypes.MakeSigner(cfg, big.NewInt(blockHeight), 10000000)
 
-	msg, baseFee, err := newEthMsgTx(nonce, address, krSigner, ethSigner, txType, data, accessList)
+	msg, baseFee, err := newEthMsgTx(nonce, address, krSigner, ethSigner, txType, data, accessList, authorizationList)
 	if err != nil {
 		return nil, err
 	}
@@ -267,6 +291,7 @@ func BenchmarkApplyMessage(b *testing.B) {
 			ethtypes.AccessListTxType,
 			nil,
 			nil,
+			nil,
 		)
 		require.NoError(b, err)
 
@@ -302,6 +327,7 @@ func BenchmarkApplyMessageWithLegacyTx(b *testing.B) {
 			ethtypes.AccessListTxType,
 			nil,
 			nil,
+			nil,
 		)
 		require.NoError(b, err)
 
@@ -335,6 +361,7 @@ func BenchmarkApplyMessageWithDynamicFeeTx(b *testing.B) {
 			krSigner,
 			signer,
 			ethtypes.DynamicFeeTxType,
+			nil,
 			nil,
 			nil,
 		)

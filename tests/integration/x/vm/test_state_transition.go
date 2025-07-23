@@ -282,6 +282,7 @@ func (s *KeeperTestSuite) TestGetEthIntrinsicGas() {
 				gethtypes.AccessListTxType,
 				tc.data,
 				tc.accessList,
+				nil,
 			)
 			s.Require().NoError(err)
 
