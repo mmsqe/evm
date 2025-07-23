@@ -261,7 +261,7 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 		receipt["contractAddress"] = crypto.CreateAddress(from, txData.Nonce())
 	}
 
-	if txData.Type() == ethtypes.DynamicFeeTxType {
+	if txData.Type() >= ethtypes.DynamicFeeTxType {
 		baseFee, err := b.BaseFee(blockRes)
 		if err != nil {
 			// tolerate the error for pruned node.
