@@ -35,6 +35,10 @@ func (s *EvmUnitAnteTestSuite) TestVerifyAccountBalance() {
 	txFactory := factory.New(unitNetwork, grpcHandler)
 	senderKey := keyring.GetKey(1)
 
+	testCodeHash := common.BytesToHash([]byte("test_code_hash"))
+	keeper := unitNetwork.App.GetEVMKeeper()
+	keeper.SetCode(unitNetwork.GetContext(), testCodeHash.Bytes(), []byte("test_code"))
+
 	testCases := []struct {
 		name                   string
 		expectedError          error
@@ -48,7 +52,7 @@ func (s *EvmUnitAnteTestSuite) TestVerifyAccountBalance() {
 				txArgs, err := txFactory.GenerateDefaultTxTypeArgs(senderKey.Addr, s.EthTxType)
 				s.Require().NoError(err)
 
-				statedbAccount.CodeHash = []byte("test")
+				statedbAccount.CodeHash = testCodeHash.Bytes()
 				s.Require().NoError(err)
 				return statedbAccount, txArgs
 			},

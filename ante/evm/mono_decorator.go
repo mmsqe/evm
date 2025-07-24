@@ -104,7 +104,7 @@ func (md MonoDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 		}
 	}
 
-	if txData.Type() == ethtypes.DynamicFeeTxType && decUtils.BaseFee != nil {
+	if txData.Type() >= ethtypes.DynamicFeeTxType && decUtils.BaseFee != nil {
 		// If the base fee is not empty, we compute the effective gas price
 		// according to current base fee price. The gas limit is specified
 		// by the user, while the price is given by the minimum between the
