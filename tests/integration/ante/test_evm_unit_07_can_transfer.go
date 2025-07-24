@@ -44,6 +44,7 @@ func (s *EvmUnitAnteTestSuite) TestCanTransfer() {
 			expectedError: errortypes.ErrInsufficientFee,
 			isLondon:      true,
 			malleate: func(txArgs *evmtypes.EvmTxArgs) {
+				txArgs.GasPrice = nil // make sure it's not legacy tx
 				txArgs.GasFeeCap = big.NewInt(0)
 			},
 		},
