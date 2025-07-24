@@ -18,6 +18,7 @@ import (
 	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	rpctypes "github.com/cosmos/evm/rpc/types"
+	"github.com/cosmos/evm/types"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -536,12 +537,17 @@ func (b *Backend) GetBlockReceipts(
 
 	msgs := b.EthMsgsFromTendermintBlock(resBlock, blockRes)
 	result := make([]map[string]interface{}, len(msgs))
+	blockHash := common.BytesToHash(resBlock.Block.Header.Hash()).Hex()
 	for i, msg := range msgs {
+		txResult, err := b.GetTxByEthHash(msg.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("tx not found: hash=%s, error=%s", msg.Hash(), err.Error())
+		}
 		result[i], err = b.formatTxReceipt(
 			msg,
-			msgs,
+			txResult,
 			blockRes,
-			common.BytesToHash(resBlock.Block.Header.Hash()).Hex(),
+			blockHash,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get transaction receipt for tx %s: %w", msg.Hash().Hex(), err)
@@ -551,12 +557,12 @@ func (b *Backend) GetBlockReceipts(
 	return result, nil
 }
 
-func (b *Backend) formatTxReceipt(ethMsg *evmtypes.MsgEthereumTx, blockMsgs []*evmtypes.MsgEthereumTx, blockRes *tmrpctypes.ResultBlockResults, blockHeaderHash string) (map[string]interface{}, error) {
-	txResult, err := b.GetTxByEthHash(ethMsg.Hash())
-	if err != nil {
-		return nil, fmt.Errorf("tx not found: hash=%s, error=%s", ethMsg.Hash(), err.Error())
-	}
-
+func (b *Backend) formatTxReceipt(
+	ethMsg *evmtypes.MsgEthereumTx,
+	txResult *types.TxResult,
+	blockRes *tmrpctypes.ResultBlockResults,
+	blockHeaderHash string,
+) (map[string]interface{}, error) {
 	txData := ethMsg.AsTransaction()
 	cumulativeGasUsed := uint64(0)
 
@@ -590,15 +596,6 @@ func (b *Backend) formatTxReceipt(ethMsg *evmtypes.MsgEthereumTx, blockMsgs []*e
 		b.Logger.Debug("failed to parse logs", "hash", ethMsg.Hash().String(), "error", err.Error())
 	}
 
-	if txResult.EthTxIndex == -1 {
-		// Fallback to find tx index by iterating all valid eth transactions
-		for i := range blockMsgs {
-			if blockMsgs[i].Hash() == ethMsg.Hash() {
-				txResult.EthTxIndex = int32(i) // #nosec G115
-				break
-			}
-		}
-	}
 	// return error if still unable to find the eth tx index
 	if txResult.EthTxIndex == -1 {
 		return nil, fmt.Errorf("can't find index of ethereum tx")
@@ -641,7 +638,7 @@ func (b *Backend) formatTxReceipt(ethMsg *evmtypes.MsgEthereumTx, blockMsgs []*e
 		receipt["contractAddress"] = crypto.CreateAddress(from, txData.Nonce())
 	}
 
-	if txData.Type() == ethtypes.DynamicFeeTxType {
+	if txData.Type() >= ethtypes.DynamicFeeTxType {
 		baseFee, err := b.BaseFee(blockRes)
 		if err != nil {
 			// tolerate the error for pruned node.

@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
 	tmrpcclient "github.com/cometbft/cometbft/rpc/client"
@@ -160,120 +159,15 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 		return nil, fmt.Errorf("failed to decode tx: %w", err)
 	}
 
-	ethMsg := tx.GetMsgs()[res.MsgIndex].(*evmtypes.MsgEthereumTx)
-
-	txData := ethMsg.AsTransaction()
-	cumulativeGasUsed := uint64(0)
 	blockRes, err := b.RPCClient.BlockResults(b.Ctx, &res.Height)
 	if err != nil {
 		b.Logger.Debug("failed to retrieve block results", "height", res.Height, "error", err.Error())
 		return nil, nil
 	}
 
-	for _, txResult := range blockRes.TxsResults[0:res.TxIndex] {
-		cumulativeGasUsed += uint64(txResult.GasUsed) // #nosec G115 -- checked for int overflow already
-	}
-
-	cumulativeGasUsed += res.CumulativeGasUsed
-
-	var status hexutil.Uint
-	if res.Failed {
-		status = hexutil.Uint(ethtypes.ReceiptStatusFailed)
-	} else {
-		status = hexutil.Uint(ethtypes.ReceiptStatusSuccessful)
-	}
-
-	chainID, err := b.ChainID()
-	if err != nil {
-		return nil, err
-	}
-
-	from, err := ethMsg.GetSender(chainID.ToInt())
-	if err != nil {
-		return nil, err
-	}
-
-	// parse tx logs from events
-	msgIndex := int(res.MsgIndex) // #nosec G115 -- checked for int overflow already
-	logs, err := TxLogsFromEvents(blockRes.TxsResults[res.TxIndex].Events, msgIndex)
-	if err != nil {
-		b.Logger.Debug("failed to parse logs", "hash", hexTx, "error", err.Error())
-	}
-
-	if res.EthTxIndex == -1 {
-		// Fallback to find tx index by iterating all valid eth transactions
-		msgs := b.EthMsgsFromTendermintBlock(resBlock, blockRes)
-		for i := range msgs {
-			if msgs[i].Hash() == hash {
-				res.EthTxIndex = int32(i) // #nosec G115
-				break
-			}
-		}
-	}
-	// return error if still unable to find the eth tx index
-	if res.EthTxIndex == -1 {
-		return nil, errors.New("can't find index of ethereum tx")
-	}
-
-	// create the logs bloom
-	var bin ethtypes.Bloom
-	for _, log := range logs {
-		bin.Add(log.Address.Bytes())
-		for _, b := range log.Topics {
-			bin.Add(b[:])
-		}
-	}
-
-	receipt := map[string]interface{}{
-		// Consensus fields: These fields are defined by the Yellow Paper
-		"status":            status,
-		"cumulativeGasUsed": hexutil.Uint64(cumulativeGasUsed),
-		"logsBloom":         ethtypes.BytesToBloom(bin.Bytes()),
-		"logs":              logs,
-
-		// Implementation fields: These fields are added by geth when processing a transaction.
-		// They are stored in the chain database.
-		"transactionHash": hash,
-		"contractAddress": nil,
-		"gasUsed":         hexutil.Uint64(b.GetGasUsed(res, txData.GasPrice(), txData.Gas())),
-
-		// Inclusion information: These fields provide information about the inclusion of the
-		// transaction corresponding to this receipt.
-		"blockHash":        common.BytesToHash(resBlock.Block.Header.Hash()).Hex(),
-		"blockNumber":      hexutil.Uint64(res.Height),     //nolint:gosec // G115 // won't exceed uint64
-		"transactionIndex": hexutil.Uint64(res.EthTxIndex), //nolint:gosec // G115 // no int overflow expected here
-
-		// https://github.com/foundry-rs/foundry/issues/7640
-		"effectiveGasPrice": (*hexutil.Big)(txData.GasPrice()),
-
-		// sender and receiver (contract or EOA) addreses
-		"from": from,
-		"to":   txData.To(),
-		"type": hexutil.Uint(ethMsg.AsTransaction().Type()),
-	}
-
-	if logs == nil {
-		receipt["logs"] = [][]*ethtypes.Log{}
-	}
-
-	// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
-	if txData.To() == nil {
-		receipt["contractAddress"] = crypto.CreateAddress(from, txData.Nonce())
-	}
-
-	if txData.Type() >= ethtypes.DynamicFeeTxType {
-		baseFee, err := b.BaseFee(blockRes)
-		if err != nil {
-			// tolerate the error for pruned node.
-			b.Logger.Error("fetch basefee failed, node is pruned?", "height", res.Height, "error", err)
-		} else {
-			gasTip, _ := txData.EffectiveGasTip(baseFee)
-			effectiveGasPrice := new(big.Int).Add(gasTip, baseFee)
-			receipt["effectiveGasPrice"] = hexutil.Big(*effectiveGasPrice)
-		}
-	}
-
-	return receipt, nil
+	ethMsg := tx.GetMsgs()[res.MsgIndex].(*evmtypes.MsgEthereumTx)
+	blockHeaderHash := common.BytesToHash(resBlock.Block.Header.Hash()).Hex()
+	return b.formatTxReceipt(ethMsg, res, blockRes, blockHeaderHash)
 }
 
 // GetTransactionLogs returns the transaction logs identified by hash.
