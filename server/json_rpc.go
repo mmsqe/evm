@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethrpc "github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -22,7 +23,7 @@ import (
 )
 
 type AppWithPendingTxStream interface {
-	RegisterPendingTxListener(listener func(string))
+	RegisterPendingTxListener(listener func(common.Hash))
 }
 
 // StartJSONRPC starts the JSON-RPC server

@@ -19,6 +19,7 @@ import (
 	cmtrpctypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/cosmos/evm/rpc/types"
+	cosmosevmtypes "github.com/cosmos/evm/types"
 	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
@@ -289,24 +290,6 @@ func (b *Backend) ProcessBlock(
 	return nil
 }
 
-// AllTxLogsFromEvents parses all ethereum logs from cosmos events
-func AllTxLogsFromEvents(events []abci.Event) ([][]*ethtypes.Log, error) {
-	allLogs := make([][]*ethtypes.Log, 0, 4)
-	for _, event := range events {
-		if event.Type != evmtypes.EventTypeTxLog {
-			continue
-		}
-
-		logs, err := evmtypes.ParseTxLogsFromEvent(event)
-		if err != nil {
-			return nil, err
-		}
-
-		allLogs = append(allLogs, logs)
-	}
-	return allLogs, nil
-}
-
 // ShouldIgnoreGasUsed returns true if the gasUsed in result should be ignored
 // workaround for issue: https://github.com/cosmos/cosmos-sdk/issues/10832
 func ShouldIgnoreGasUsed(res *abci.ExecTxResult) bool {
@@ -315,14 +298,17 @@ func ShouldIgnoreGasUsed(res *abci.ExecTxResult) bool {
 
 // GetLogsFromBlockResults returns the list of event logs from the tendermint block result response
 func GetLogsFromBlockResults(blockRes *cmtrpctypes.ResultBlockResults) ([][]*ethtypes.Log, error) {
+	height, err := cosmosevmtypes.SafeUint64(blockRes.Height)
+	if err != nil {
+		return nil, err
+	}
 	blockLogs := [][]*ethtypes.Log{}
 	for _, txResult := range blockRes.TxsResults {
-		logs, err := AllTxLogsFromEvents(txResult.Events)
+		logs, err := evmtypes.DecodeTxLogsFromEvents(txResult.Data, txResult.Events, height)
 		if err != nil {
 			return nil, err
 		}
-
-		blockLogs = append(blockLogs, logs...)
+		blockLogs = append(blockLogs, logs)
 	}
 	return blockLogs, nil
 }

@@ -14,6 +14,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 
 	"github.com/cosmos/evm/rpc/types"
+	cosmosevmtypes "github.com/cosmos/evm/types"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
 	"cosmossdk.io/log"
@@ -128,8 +129,8 @@ func (s *RPCStream) LogStream() *Stream[*ethtypes.Log] {
 }
 
 // ListenPendingTx is a callback passed to application to listen for pending transactions in CheckTx.
-func (s *RPCStream) ListenPendingTx(hash string) {
-	s.PendingTxStream().Add(common.HexToHash(hash))
+func (s *RPCStream) ListenPendingTx(hash common.Hash) {
+	s.PendingTxStream().Add(hash)
 }
 
 func (s *RPCStream) start(
@@ -181,7 +182,10 @@ func (s *RPCStream) start(
 				s.logger.Error("event data type mismatch", "type", fmt.Sprintf("%T", ev.Data))
 				continue
 			}
-			height := uint64(dataTx.Height) //#nosec G115
+			height, err := cosmosevmtypes.SafeUint64(dataTx.Height)
+			if err != nil {
+				continue
+			}
 			txLogs, err := evmtypes.DecodeTxLogsFromEvents(dataTx.Result.Data, dataTx.Result.Events, height)
 			if err != nil {
 				s.logger.Error("fail to decode evm tx response", "error", err.Error())
