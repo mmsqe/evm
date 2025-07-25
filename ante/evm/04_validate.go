@@ -24,6 +24,9 @@ func ValidateMsg(
 	txData evmtypes.TxData,
 	from sdktypes.AccAddress,
 ) error {
+	if txData == nil {
+		return errorsmod.Wrap(errortypes.ErrInvalidRequest, "transaction is nil")
+	}
 	return checkDisabledCreateCall(
 		txData,
 		&evmParams.AccessControl,
