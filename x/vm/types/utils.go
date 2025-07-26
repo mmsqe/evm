@@ -92,6 +92,7 @@ func logsFromTxResponse(dst []*ethtypes.Log, rsp *MsgEthereumTxResponse, blockNu
 
 // TxLogsFromEvents parses ethereum logs from cosmos events for specific msg index
 func TxLogsFromEvents(events []abci.Event, msgIndex int) ([]*ethtypes.Log, error) {
+	index := msgIndex
 	for _, event := range events {
 		if event.Type != EventTypeTxLog {
 			continue
@@ -105,7 +106,7 @@ func TxLogsFromEvents(events []abci.Event, msgIndex int) ([]*ethtypes.Log, error
 
 		return ParseTxLogsFromEvent(event)
 	}
-	return nil, fmt.Errorf("eth tx logs not found for message index %d", msgIndex)
+	return nil, fmt.Errorf("eth tx logs not found for message index %d", index)
 }
 
 // ParseTxLogsFromEvent parse tx logs from one event
