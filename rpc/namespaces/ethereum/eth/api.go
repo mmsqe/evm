@@ -268,7 +268,8 @@ func (e *PublicAPI) GetProof(address common.Address,
 ///////////////////////////////////////////////////////////////////////////////
 
 // Call performs a raw contract call.
-func (e *PublicAPI) Call(args evmtypes.TransactionArgs,
+func (e *PublicAPI) Call(
+	args evmtypes.TransactionArgs,
 	blockNrOrHash rpctypes.BlockNumberOrHash,
 	overrides *json.RawMessage,
 ) (hexutil.Bytes, error) {

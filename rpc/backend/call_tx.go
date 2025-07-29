@@ -287,7 +287,10 @@ func (b *Backend) SetTxDefaults(args evmtypes.TransactionArgs) (evmtypes.Transac
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
-func (b *Backend) EstimateGas(args evmtypes.TransactionArgs, blockNrOptional *rpctypes.BlockNumber) (hexutil.Uint64, error) {
+func (b *Backend) EstimateGas(
+	args evmtypes.TransactionArgs,
+	blockNrOptional *rpctypes.BlockNumber,
+) (hexutil.Uint64, error) {
 	blockNr := rpctypes.EthPendingBlockNumber
 	if blockNrOptional != nil {
 		blockNr = *blockNrOptional
