@@ -98,6 +98,7 @@ func StartJSONRPC(
 		case err := <-errCh:
 			if err == http.ErrServerClosed {
 				close(httpSrvDone)
+				return nil
 			}
 
 			srvCtx.Logger.Error("failed to start JSON-RPC server", "error", err.Error())
