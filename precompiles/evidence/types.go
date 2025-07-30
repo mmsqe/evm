@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 
 	cmn "github.com/cosmos/evm/precompiles/common"
 
 	evidencetypes "cosmossdk.io/x/evidence/types"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 )
 
@@ -59,12 +59,8 @@ func (e EquivocationData) ToEquivocation() *evidencetypes.Equivocation {
 	}
 }
 
-type SubmitEquivocationInput struct {
-	Equivocation EquivocationData
-}
-
 // NewMsgSubmitEvidence creates a new MsgSubmitEvidence instance.
-func NewMsgSubmitEvidence(method *abi.Method, args []interface{}) (*evidencetypes.MsgSubmitEvidence, common.Address, error) {
+func NewMsgSubmitEvidence(args []interface{}) (*evidencetypes.MsgSubmitEvidence, common.Address, error) {
 	emptyAddr := common.Address{}
 	if len(args) != 2 {
 		return nil, emptyAddr, fmt.Errorf(cmn.ErrInvalidNumberOfArgs, 2, len(args))
@@ -75,21 +71,18 @@ func NewMsgSubmitEvidence(method *abi.Method, args []interface{}) (*evidencetype
 		return nil, emptyAddr, fmt.Errorf("invalid submitter address")
 	}
 
-	inputs := method.Inputs[1:] // Skip the first input which is the submitter address
-	args = args[1:]
-	var input SubmitEquivocationInput
-	if err := inputs.Copy(&input, args); err != nil {
-		return nil, emptyAddr, fmt.Errorf("failed to copy inputs: %w", err)
-	}
-
-	equivocation := input.Equivocation.ToEquivocation()
-	if equivocation == nil {
+	equivocation, ok := args[1].(EquivocationData)
+	if !ok {
 		return nil, emptyAddr, fmt.Errorf("invalid equivocation evidence")
 	}
 
+	// Convert the EquivocationData to a types.Equivocation
+	evidence := equivocation.ToEquivocation()
+
+	// Create the MsgSubmitEvidence using the SDK msg builder
 	msg, err := evidencetypes.NewMsgSubmitEvidence(
-		submitterAddress.Bytes(),
-		equivocation,
+		sdk.AccAddress(submitterAddress.Bytes()),
+		evidence,
 	)
 	if err != nil {
 		return nil, emptyAddr, fmt.Errorf("failed to create evidence message: %w", err)

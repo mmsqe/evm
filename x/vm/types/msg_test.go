@@ -15,7 +15,7 @@ import (
 
 	"github.com/cosmos/evm/crypto/ethsecp256k1"
 	"github.com/cosmos/evm/encoding"
-	"github.com/cosmos/evm/testutil/config"
+	exampleapp "github.com/cosmos/evm/evmd"
 	testconstants "github.com/cosmos/evm/testutil/constants"
 	utiltx "github.com/cosmos/evm/testutil/tx"
 	"github.com/cosmos/evm/x/vm/types"
@@ -57,7 +57,7 @@ func (suite *MsgsTestSuite) SetupTest() {
 	encodingConfig := encoding.MakeConfig(suite.chainID.Uint64())
 	suite.clientCtx = client.Context{}.WithTxConfig(encodingConfig.TxConfig)
 
-	err := config.EvmAppOptions(9001)
+	err := exampleapp.EvmAppOptions(9001)
 	suite.Require().NoError(err)
 }
 
