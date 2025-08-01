@@ -23,8 +23,7 @@ import (
 )
 
 func (suite *BackendTestSuite) TestBaseFee() {
-	baseFee := sdkmath.NewInt(1)
-
+	baseFee := sdkmath.NewInt(100_000_000_000)
 	testCases := []struct {
 		name         string
 		blockRes     *tmrpctypes.ResultBlockResults
@@ -322,6 +321,7 @@ func (suite *BackendTestSuite) TestGlobalMinGasPrice() {
 }
 
 func (suite *BackendTestSuite) TestFeeHistory() {
+	baseFee := sdkmath.NewInt(100_000_000_000)
 	testCases := []struct {
 		name              string
 		registerMock      func(validator sdk.AccAddress)
@@ -437,7 +437,7 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			1,
 			&rpc.FeeHistoryResult{
 				OldestBlock:  (*hexutil.Big)(big.NewInt(1)),
-				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(new(big.Int).SetBits([]big.Word{}))},
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))},
 				GasUsedRatio: []float64{0},
 				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
 			},
@@ -449,7 +449,6 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			"pass - Valid FeeHistoryResults object",
 			func(validator sdk.AccAddress) {
 				var header metadata.MD
-				baseFee := sdkmath.NewInt(1)
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				fQueryClient := suite.backend.queryClient.FeeMarket.(*mocks.FeeMarketQueryClient)
 				client := suite.backend.clientCtx.Client.(*mocks.Client)
@@ -468,7 +467,7 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			1,
 			&rpc.FeeHistoryResult{
 				OldestBlock:  (*hexutil.Big)(big.NewInt(1)),
-				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(1)), (*hexutil.Big)(big.NewInt(1))},
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(baseFee.BigInt()), (*hexutil.Big)(big.NewInt(87_500_000_000))},
 				GasUsedRatio: []float64{0},
 				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
 			},
@@ -480,7 +479,6 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			"pass - Concurrent FeeHistoryResults object",
 			func(validator sdk.AccAddress) {
 				var header metadata.MD
-				baseFee := sdkmath.NewInt(1)
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				fQueryClient := suite.backend.queryClient.FeeMarket.(*mocks.FeeMarketQueryClient)
 				client := suite.backend.clientCtx.Client.(*mocks.Client)
@@ -499,21 +497,20 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			1,
 			&rpc.FeeHistoryResult{
 				OldestBlock:  (*hexutil.Big)(big.NewInt(1)),
-				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(1)), (*hexutil.Big)(big.NewInt(0))},
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(baseFee.BigInt()), (*hexutil.Big)(big.NewInt(87_500_000_000))},
 				GasUsedRatio: []float64{0},
 				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
 			},
 			sdk.AccAddress(utiltx.GenerateAddress().Bytes()),
 			true,
 			[]*big.Int{
-				big.NewInt(0), // for overwrite overlap
+				big.NewInt(87_500_000_000), // for overwrite overlap
 			},
 		},
 		{
 			"pass - EarliestBlockNumber(0x0)",
 			func(validator sdk.AccAddress) {
 				var header metadata.MD
-				baseFee := sdkmath.NewInt(1)
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				fQueryClient := suite.backend.queryClient.FeeMarket.(*mocks.FeeMarketQueryClient)
 				client := suite.backend.clientCtx.Client.(*mocks.Client)
@@ -532,7 +529,7 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			0,
 			&rpc.FeeHistoryResult{
 				OldestBlock:  (*hexutil.Big)(big.NewInt(0)),
-				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(1)), (*hexutil.Big)(big.NewInt(1))},
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(baseFee.BigInt()), (*hexutil.Big)(big.NewInt(87_500_000_000))},
 				GasUsedRatio: []float64{0},
 				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
 			},
@@ -544,7 +541,6 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			"pass - EarliestBlockNumber(tag)",
 			func(validator sdk.AccAddress) {
 				var header metadata.MD
-				baseFee := sdkmath.NewInt(1)
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				fQueryClient := suite.backend.queryClient.FeeMarket.(*mocks.FeeMarketQueryClient)
 				client := suite.backend.clientCtx.Client.(*mocks.Client)
@@ -563,7 +559,7 @@ func (suite *BackendTestSuite) TestFeeHistory() {
 			ethrpc.EarliestBlockNumber,
 			&rpc.FeeHistoryResult{
 				OldestBlock:  (*hexutil.Big)(big.NewInt(0)),
-				BaseFee:      []*hexutil.Big{(*hexutil.Big)(big.NewInt(1)), (*hexutil.Big)(big.NewInt(1))},
+				BaseFee:      []*hexutil.Big{(*hexutil.Big)(baseFee.BigInt()), (*hexutil.Big)(big.NewInt(87_500_000_000))},
 				GasUsedRatio: []float64{0},
 				Reward:       [][]*hexutil.Big{{(*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0)), (*hexutil.Big)(big.NewInt(0))}},
 			},

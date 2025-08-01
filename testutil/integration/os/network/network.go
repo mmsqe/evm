@@ -194,6 +194,9 @@ func (n *IntegrationNetwork) configureAndInitChain() error {
 	}
 
 	consensusParams := chainutil.DefaultConsensusParams
+	if n.cfg.customConsensusParams != nil {
+		consensusParams = n.cfg.customConsensusParams
+	}
 	now := time.Now()
 
 	if _, err = exampleApp.InitChain(
