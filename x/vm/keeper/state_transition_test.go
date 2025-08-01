@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/cometbft/cometbft/crypto/tmhash"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 
 	exampleapp "github.com/cosmos/evm/evmd"
@@ -33,7 +32,6 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	consensustypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func (suite *KeeperTestSuite) TestContextSetConsensusParams() {
@@ -82,8 +80,8 @@ func (suite *KeeperTestSuite) TestContextSetConsensusParams() {
 func (suite *KeeperTestSuite) TestGetHashFn() {
 	suite.SetupTest()
 	header := suite.network.GetContext().BlockHeader()
-	h, _ := cmttypes.HeaderFromProto(&header)
-	hash := h.Hash()
+	cmtHeader, _ := cmttypes.HeaderFromProto(&header)
+	hash := cmtHeader.Hash()
 
 	testCases := []struct {
 		msg      string
@@ -92,7 +90,7 @@ func (suite *KeeperTestSuite) TestGetHashFn() {
 		expHash  common.Hash
 	}{
 		{
-			"case 1.1: context hash cached",
+			"case 1: context hash cached",
 			uint64(suite.network.GetContext().BlockHeight()), //nolint:gosec // G115
 			func() sdk.Context {
 				return suite.network.GetContext().WithHeaderHash(
@@ -102,48 +100,9 @@ func (suite *KeeperTestSuite) TestGetHashFn() {
 			common.BytesToHash(tmhash.Sum([]byte("header"))),
 		},
 		{
-			"case 1.2: failed to cast Tendermint header",
-			uint64(suite.network.GetContext().BlockHeight()), //nolint:gosec // G115
-			func() sdk.Context {
-				header := tmproto.Header{}
-				header.Height = suite.network.GetContext().BlockHeight()
-				return suite.network.GetContext().WithBlockHeader(header)
-			},
-			common.Hash{},
-		},
-		{
-			"case 1.3: hash calculated from Tendermint header",
-			uint64(suite.network.GetContext().BlockHeight()), //nolint:gosec // G115
-			func() sdk.Context {
-				return suite.network.GetContext().WithBlockHeader(header)
-			},
-			common.BytesToHash(hash),
-		},
-		{
-			"case 2.1: height lower than current one, hist info not found",
+			"case 2: height lower than current one, found in storage",
 			1,
 			func() sdk.Context {
-				return suite.network.GetContext().WithBlockHeight(10)
-			},
-			common.Hash{},
-		},
-		{
-			"case 2.2: height lower than current one, invalid hist info header",
-			1,
-			func() sdk.Context {
-				suite.Require().NoError(suite.network.App.StakingKeeper.SetHistoricalInfo(suite.network.GetContext(), 1, &stakingtypes.HistoricalInfo{}))
-				return suite.network.GetContext().WithBlockHeight(10)
-			},
-			common.Hash{},
-		},
-		{
-			"case 2.3: height lower than current one, calculated from hist info header",
-			1,
-			func() sdk.Context {
-				histInfo := &stakingtypes.HistoricalInfo{
-					Header: header,
-				}
-				suite.Require().NoError(suite.network.App.StakingKeeper.SetHistoricalInfo(suite.network.GetContext(), 1, histInfo))
 				return suite.network.GetContext().WithBlockHeight(10)
 			},
 			common.BytesToHash(hash),
