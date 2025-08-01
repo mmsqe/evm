@@ -564,10 +564,11 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 		blockResult  []*abci.ExecTxResult
 		expPass      bool
 		expErr       error
+		expEmpty     bool
 	}{
 		// TODO test happy path
 		{
-			name:         "fail - tx not found",
+			name:         "success - tx not found",
 			registerMock: func() {},
 			block:        &types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
 			tx:           msgEthereumTx2,
@@ -586,8 +587,8 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 					},
 				},
 			},
-			expPass: false,
-			expErr:  fmt.Errorf("tx not found, hash: %s", txHash.Hex()),
+			expPass:  true,
+			expEmpty: true,
 		},
 		{
 			name: "fail - block not found",
@@ -645,8 +646,8 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 			expErr:  fmt.Errorf("block result not found at height 1: some error"),
 		},
 		{
-			"happy path",
-			func() {
+			name: "happy path",
+			registerMock: func() {
 				var header metadata.MD
 				queryClient := suite.backend.queryClient.QueryClient.(*mocks.EVMQueryClient)
 				client := suite.backend.clientCtx.Client.(*mocks.Client)
@@ -656,9 +657,9 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 				_, err = RegisterBlockResults(client, 1)
 				suite.Require().NoError(err)
 			},
-			msgEthereumTx,
-			&types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
-			[]*abci.ExecTxResult{
+			tx:    msgEthereumTx,
+			block: &types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
+			blockResult: []*abci.ExecTxResult{
 				{
 					Code: 0,
 					Events: []abci.Event{
@@ -673,8 +674,7 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 					},
 				},
 			},
-			true,
-			nil,
+			expPass: true,
 		},
 	}
 
@@ -691,13 +691,17 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 			hash := common.HexToHash(tc.tx.Hash)
 			res, err := suite.backend.GetTransactionReceipt(hash)
 			if tc.expPass {
-				suite.Require().Equal(res["transactionHash"], hash)
-				suite.Require().Equal(res["blockNumber"], hexutil.Uint64(tc.block.Height)) //nolint: gosec // G115
-				requiredFields := []string{"status", "cumulativeGasUsed", "logsBloom", "logs", "gasUsed", "blockHash", "blockNumber", "transactionIndex", "effectiveGasPrice", "from", "to", "type"}
-				for _, field := range requiredFields {
-					suite.Require().NotNil(res[field], "field was empty %s", field)
+				if tc.expEmpty {
+					suite.Require().Empty(res)
+				} else {
+					suite.Require().Equal(res["transactionHash"], hash)
+					suite.Require().Equal(res["blockNumber"], hexutil.Uint64(tc.block.Height)) //nolint: gosec // G115
+					requiredFields := []string{"status", "cumulativeGasUsed", "logsBloom", "logs", "gasUsed", "blockHash", "blockNumber", "transactionIndex", "effectiveGasPrice", "from", "to", "type"}
+					for _, field := range requiredFields {
+						suite.Require().NotNil(res[field], "field was empty %s", field)
+					}
+					suite.Require().Nil(res["contractAddress"]) // no contract creation
 				}
-				suite.Require().Nil(res["contractAddress"]) // no contract creation
 				suite.Require().NoError(err)
 			} else {
 				suite.Require().Error(err)
