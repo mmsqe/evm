@@ -57,7 +57,7 @@ type Backend interface {
 }
 
 // consider a filter inactive if it has not been polled for within deadline
-var deadline = 5 * time.Minute
+const defaultDeadline = 5 * time.Minute
 
 // filter is a helper struct that holds meta information over the filter type
 // and associated subscription in the event system.
@@ -78,10 +78,28 @@ type PublicFilterAPI struct {
 	events    *stream.RPCStream
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
+	deadline  time.Duration
 }
 
 // NewPublicAPI returns a new PublicFilterAPI instance.
-func NewPublicAPI(logger log.Logger, clientCtx client.Context, stream *stream.RPCStream, backend Backend) *PublicFilterAPI {
+func NewPublicAPI(
+	logger log.Logger,
+	clientCtx client.Context,
+	stream *stream.RPCStream,
+	backend Backend,
+) *PublicFilterAPI {
+	api := NewPublicAPIWithDeadline(logger, clientCtx, stream, backend, defaultDeadline)
+	return api
+}
+
+// NewPublicAPIWithDeadline returns a new PublicFilterAPI instance with the given deadline.
+func NewPublicAPIWithDeadline(
+	logger log.Logger,
+	clientCtx client.Context,
+	stream *stream.RPCStream,
+	backend Backend,
+	deadline time.Duration,
+) *PublicFilterAPI {
 	logger = logger.With("api", "filter")
 	api := &PublicFilterAPI{
 		logger:    logger,
@@ -89,6 +107,7 @@ func NewPublicAPI(logger log.Logger, clientCtx client.Context, stream *stream.RP
 		backend:   backend,
 		filters:   make(map[rpc.ID]*filter),
 		events:    stream,
+		deadline:  deadline,
 	}
 
 	go api.timeoutLoop()
@@ -99,7 +118,7 @@ func NewPublicAPI(logger log.Logger, clientCtx client.Context, stream *stream.RP
 // timeoutLoop runs every 5 minutes and deletes filters that have not been recently used.
 // Tt is started when the api is created.
 func (api *PublicFilterAPI) timeoutLoop() {
-	ticker := time.NewTicker(deadline)
+	ticker := time.NewTicker(api.deadline)
 	defer ticker.Stop()
 
 	for {
@@ -138,7 +157,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	_, offset := api.events.PendingTxStream().ReadNonBlocking(-1)
 	api.filters[id] = &filter{
 		typ:      filters.PendingTransactionsSubscription,
-		deadline: time.NewTimer(deadline),
+		deadline: time.NewTimer(api.deadline),
 		offset:   offset,
 	}
 
@@ -161,7 +180,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	_, offset := api.events.HeaderStream().ReadNonBlocking(-1)
 	api.filters[id] = &filter{
 		typ:      filters.BlocksSubscription,
-		deadline: time.NewTimer(deadline),
+		deadline: time.NewTimer(api.deadline),
 		offset:   offset,
 	}
 
@@ -186,14 +205,14 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	defer api.filtersMu.Unlock()
 
 	if len(api.filters) >= int(api.backend.RPCFilterCap()) {
-		return rpc.ID(""), fmt.Errorf("error creating filter: max limit reached")
+		return "", fmt.Errorf("error creating filter: max limit reached")
 	}
 
 	id := rpc.NewID()
 	_, offset := api.events.LogStream().ReadNonBlocking(-1)
 	api.filters[id] = &filter{
 		typ:      filters.LogsSubscription,
-		deadline: time.NewTimer(deadline),
+		deadline: time.NewTimer(api.deadline),
 		crit:     criteria,
 		offset:   offset,
 	}
@@ -314,7 +333,7 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 		// receive timer value and reset timer
 		<-f.deadline.C
 	}
-	f.deadline.Reset(deadline)
+	f.deadline.Reset(api.deadline)
 
 	switch f.typ {
 	case filters.PendingTransactionsSubscription:
