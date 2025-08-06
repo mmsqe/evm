@@ -14,7 +14,7 @@ import (
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 
-	exampleapp "github.com/cosmos/evm/evmd"
+	"github.com/cosmos/evm/testutil/config"
 	"github.com/cosmos/evm/testutil/integration/evm/factory"
 	"github.com/cosmos/evm/testutil/integration/evm/grpc"
 	"github.com/cosmos/evm/testutil/integration/evm/network"
@@ -319,9 +319,7 @@ func (s *KeeperTestSuite) TestGetEthIntrinsicGas() {
 			nonce := s.Network.App.GetEVMKeeper().GetNonce(ctx, addr)
 			m, err := newNativeMessage(
 				nonce,
-				ctx.BlockHeight(),
 				addr,
-				ethCfg,
 				krSigner,
 				signer,
 				gethtypes.AccessListTxType,
@@ -587,7 +585,7 @@ func (s *KeeperTestSuite) TestResetGasMeterAndConsumeGas() {
 func (s *KeeperTestSuite) TestEVMConfig() {
 	s.SetupTest()
 
-	defaultChainEVMParams := exampleapp.NewEVMGenesisState().Params
+	defaultChainEVMParams := config.NewEVMGenesisState().Params
 
 	proposerAddress := s.Network.GetContext().BlockHeader().ProposerAddress
 	cfg, err := s.Network.App.GetEVMKeeper().EVMConfig(
@@ -640,8 +638,8 @@ func (s *KeeperTestSuite) TestApplyTransaction() {
 			s.Require().NoError(err)
 			initialBalance := s.Network.App.GetBankKeeper().GetBalance(ctx, s.Keyring.GetAccAddr(0), "aatom")
 
-			ethTx := tx.GetMsgs()[0].(*types.MsgEthereumTx).AsTransaction()
-			res, err := s.Network.App.GetEVMKeeper().ApplyTransaction(ctx, ethTx)
+			ethMsg := tx.GetMsgs()[0].(*types.MsgEthereumTx)
+			res, err := s.Network.App.GetEVMKeeper().ApplyTransaction(ctx, ethMsg.AsTransaction())
 			s.Require().NoError(err)
 			s.Require().Equal(res.GasUsed, uint64(3e6))
 			// Half of the gas should be refunded based on the protocol refund cap.

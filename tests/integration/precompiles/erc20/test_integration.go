@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/stretchr/testify/suite"
 
-	//nolint:revive,ST1001 // dot imports are fine for Ginkgo
+	//nolint:revive // dot imports are fine for Ginkgo
 	. "github.com/onsi/ginkgo/v2"
-	//nolint:revive,ST1001 // dot imports are fine for Ginkgo
+	//nolint:revive // dot imports are fine for Ginkgo
 	. "github.com/onsi/gomega"
 
 	"github.com/cosmos/evm/contracts"
@@ -386,7 +386,9 @@ func TestIntegrationTestSuite(t *testing.T, create network.CreateEvmApp, options
 					// Transfer tokens
 					txArgs, transferArgs := is.getTxAndCallArgs(callType, contractsData, erc20.TransferMethod, receiver, transferAmount)
 
-					_, ethRes, err := is.factory.CallContractAndCheckLogs(sender.Priv, txArgs, transferArgs, execRevertedCheck)
+					revertReasonCheck := execRevertedCheck.WithErrNested(erc20.ErrTransferAmountExceedsBalance.Error())
+
+					_, ethRes, err := is.factory.CallContractAndCheckLogs(sender.Priv, txArgs, transferArgs, revertReasonCheck)
 					Expect(err).ToNot(HaveOccurred(), "unexpected result calling contract")
 					Expect(ethRes).To(BeNil(), "expected empty result")
 				},
@@ -506,7 +508,9 @@ func TestIntegrationTestSuite(t *testing.T, create network.CreateEvmApp, options
 						}
 						txArgs.Amount = amountToSend
 
-						res, _, err := is.factory.CallContractAndCheckLogs(sender.Priv, txArgs, args, execRevertedCheck)
+						revertReasonCheck := execRevertedCheck.WithErrNested("revert here")
+
+						res, _, err := is.factory.CallContractAndCheckLogs(sender.Priv, txArgs, args, revertReasonCheck)
 						Expect(err).To(BeNil())
 						Expect(is.network.NextBlock()).To(BeNil())
 
@@ -598,7 +602,9 @@ func TestIntegrationTestSuite(t *testing.T, create network.CreateEvmApp, options
 						}
 						txArgs.Amount = big.NewInt(300)
 
-						res, _, err := is.factory.CallContractAndCheckLogs(sender.Priv, txArgs, args, execRevertedCheck)
+						revertReasonCheck := execRevertedCheck.WithErrNested("revert here")
+
+						res, _, err := is.factory.CallContractAndCheckLogs(sender.Priv, txArgs, args, revertReasonCheck)
 						Expect(err).To(BeNil())
 						Expect(is.network.NextBlock()).To(BeNil())
 						fees := math.NewIntFromBigInt(gasPrice).MulRaw(res.GasUsed)
@@ -1094,7 +1100,9 @@ func TestIntegrationTestSuite(t *testing.T, create network.CreateEvmApp, options
 							from.Addr, receiver, transferAmount,
 						)
 
-						_, ethRes, err := is.factory.CallContractAndCheckLogs(from.Priv, txArgs, transferArgs, execRevertedCheck)
+						revertReasonCheck := execRevertedCheck.WithErrNested(erc20.ErrInsufficientAllowance.Error())
+
+						_, ethRes, err := is.factory.CallContractAndCheckLogs(from.Priv, txArgs, transferArgs, revertReasonCheck)
 						Expect(err).ToNot(HaveOccurred(), "unexpected result calling contract")
 						Expect(ethRes).To(BeNil(), "expected empty result")
 

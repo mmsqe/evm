@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -93,7 +94,7 @@ type EVMBackend interface {
 	CurrentHeader() (*ethtypes.Header, error)
 	PendingTransactions() ([]*sdk.Tx, error)
 	GetCoinbase() (sdk.AccAddress, error)
-	FeeHistory(blockCount, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*rpctypes.FeeHistoryResult, error)
+	FeeHistory(blockCount math.HexOrDecimal64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*rpctypes.FeeHistoryResult, error)
 	SuggestGasTipCap(baseFee *big.Int) (*big.Int, error)
 
 	// Tx Info
@@ -119,12 +120,39 @@ type EVMBackend interface {
 	GetLogsByHeight(height *int64) ([][]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
 
+	// TxPool API
+	Content() (map[string]map[string]map[string]*rpctypes.RPCTransaction, error)
+	ContentFrom(address common.Address) (map[string]map[string]map[string]*rpctypes.RPCTransaction, error)
+	Inspect() (map[string]map[string]map[string]string, error)
+	Status() (map[string]hexutil.Uint, error)
+
 	// Tracing
 	TraceTransaction(hash common.Hash, config *evmtypes.TraceConfig) (interface{}, error)
 	TraceBlock(height rpctypes.BlockNumber, config *evmtypes.TraceConfig, block *tmrpctypes.ResultBlock) ([]*evmtypes.TxTraceResult, error)
 }
 
 var _ BackendI = (*Backend)(nil)
+
+// ProcessBlocker is a function type that processes a block and its associated data
+// for fee history calculation. It takes a Tendermint block, its corresponding
+// Ethereum block representation, reward percentiles for fee estimation,
+// block results, and a target fee history entry to populate.
+//
+// Parameters:
+//   - tendermintBlock: The raw Tendermint block data
+//   - ethBlock: The Ethereum-formatted block representation
+//   - rewardPercentiles: Percentiles used for fee reward calculation
+//   - tendermintBlockResult: Block execution results from Tendermint
+//   - targetOneFeeHistory: The fee history entry to be populated
+//
+// Returns an error if block processing fails.
+type ProcessBlocker func(
+	tendermintBlock *tmrpctypes.ResultBlock,
+	ethBlock *map[string]interface{},
+	rewardPercentiles []float64,
+	tendermintBlockResult *tmrpctypes.ResultBlockResults,
+	targetOneFeeHistory *rpctypes.OneFeeHistory,
+) error
 
 // Backend implements the BackendI interface
 type Backend struct {
@@ -137,6 +165,7 @@ type Backend struct {
 	Cfg                 config.Config
 	AllowUnprotectedTxs bool
 	Indexer             cosmosevmtypes.EVMTxIndexer
+	ProcessBlocker      ProcessBlocker
 }
 
 func (b *Backend) GetConfig() config.Config {
@@ -161,7 +190,7 @@ func NewBackend(
 		panic(fmt.Sprintf("invalid rpc client, expected: tmrpcclient.SignClient, got: %T", clientCtx.Client))
 	}
 
-	return &Backend{
+	b := &Backend{
 		Ctx:                 context.Background(),
 		ClientCtx:           clientCtx,
 		RPCClient:           rpcClient,
@@ -172,4 +201,6 @@ func NewBackend(
 		AllowUnprotectedTxs: allowUnprotectedTxs,
 		Indexer:             indexer,
 	}
+	b.ProcessBlocker = b.ProcessBlock
+	return b
 }
