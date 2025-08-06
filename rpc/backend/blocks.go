@@ -17,6 +17,7 @@ import (
 	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	rpctypes "github.com/cosmos/evm/rpc/types"
+	cosmosevmtypes "github.com/cosmos/evm/types"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -173,14 +174,6 @@ func (b *Backend) TendermintBlockByNumber(blockNum rpctypes.BlockNumber) (*tmrpc
 	return resBlock, nil
 }
 
-func safeHexToInt64(value hexutil.Uint64) (int64, error) {
-	if value > math.MaxInt64 {
-		return 0, fmt.Errorf("hexutil.Uint64 value %v cannot exceed %v", value, math.MaxInt64)
-	}
-
-	return int64(value), nil //nolint:gosec // checked
-}
-
 func (b *Backend) getHeightByBlockNum(blockNum rpctypes.BlockNumber) (int64, error) {
 	height := blockNum.Int64()
 	if height <= 0 {
@@ -189,7 +182,7 @@ func (b *Backend) getHeightByBlockNum(blockNum rpctypes.BlockNumber) (int64, err
 		if err != nil {
 			return 0, err
 		}
-		height, err = safeHexToInt64(n)
+		height, err = cosmosevmtypes.SafeHexToInt64(n)
 		if err != nil {
 			return 0, err
 		}

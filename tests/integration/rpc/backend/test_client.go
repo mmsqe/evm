@@ -308,7 +308,7 @@ func RegisterHeaderByHashNotFound(client *mocks.Client, hash common.Hash, tx []b
 func RegisterHeader(client *mocks.Client, height *int64, tx []byte) *coretypes.ResultHeader {
 	block := types.MakeBlock(*height, []types.Tx{tx}, nil, nil)
 	resHeader := &coretypes.ResultHeader{Header: &block.Header}
-	client.On("Header", rpc.ContextWithHeight(*height), height).Return(resHeader, nil)
+	client.On("Header", rpc.ContextWithHeight(*height), mock.AnythingOfType("*int64")).Return(resHeader, nil)
 	return resHeader
 }
 
@@ -318,8 +318,9 @@ func RegisterHeaderError(client *mocks.Client, height *int64) {
 
 // Header not found
 func RegisterHeaderNotFound(client *mocks.Client, height int64) {
-	client.On("Header", rpc.ContextWithHeight(height), mock.AnythingOfType("*int64")).
-		Return(&coretypes.ResultHeader{Header: nil}, nil)
+	client.On("Header", rpc.ContextWithHeight(height), mock.MatchedBy(func(arg *int64) bool {
+		return arg != nil && height == *arg
+	})).Return(&coretypes.ResultHeader{Header: nil}, nil)
 }
 
 func RegisterABCIQueryWithOptions(client *mocks.Client, height int64, path string, data bytes.HexBytes, opts cmtrpcclient.ABCIQueryOptions) {

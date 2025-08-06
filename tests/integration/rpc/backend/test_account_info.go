@@ -174,18 +174,17 @@ func (s *TestSuite) TestGetProof() {
 			[]string{"0x0"},
 			rpctypes.BlockNumberOrHash{BlockNumber: &blockNrZero},
 			func(bn rpctypes.BlockNumber, addr common.Address) {
-				s.backend.Ctx = rpctypes.ContextWithHeight(4)
-
+				height := int64(4)
+				s.backend.Ctx = rpctypes.ContextWithHeight(height)
 				client := s.backend.ClientCtx.Client.(*mocks.Client)
-				_, err := RegisterBlock(client, 4, nil)
-				s.Require().NoError(err)
+				RegisterHeader(client, &height, nil)
 				queryClient := s.backend.QueryClient.QueryClient.(*mocks.EVMQueryClient)
-				RegisterAccount(queryClient, addr, 4)
+				RegisterAccount(queryClient, addr, height)
 				var header metadata.MD
-				RegisterParams(queryClient, &header, 4)
+				RegisterParams(queryClient, &header, height)
 
 				// Use the IAVL height if a valid tendermint height is passed in.
-				var iavlHeight int64 = 4
+				iavlHeight := height
 				RegisterABCIQueryWithOptions(
 					client,
 					iavlHeight,
