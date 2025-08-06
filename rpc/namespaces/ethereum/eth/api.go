@@ -3,6 +3,7 @@ package eth
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -272,6 +273,11 @@ func (e *PublicAPI) Call(
 	overrides *json.RawMessage,
 ) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_call", "args", args.String(), "block number or hash", blockNrOrHash)
+
+	if overrides != nil {
+		e.logger.Debug("eth_call", "error", "overrides are unsupported in call queries")
+		return nil, fmt.Errorf("overrides are unsupported in call queries")
+	}
 
 	blockNum, err := e.backend.BlockNumberFromTendermint(blockNrOrHash)
 	if err != nil {
