@@ -1,15 +1,16 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethrpc "github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
+	"golang.org/x/sync/errgroup"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 
@@ -27,17 +28,20 @@ type AppWithPendingTxStream interface {
 }
 
 // StartJSONRPC starts the JSON-RPC server
-func StartJSONRPC(ctx *server.Context,
+func StartJSONRPC(
+	ctx context.Context,
+	srvCtx *server.Context,
 	clientCtx client.Context,
+	g *errgroup.Group,
 	config *serverconfig.Config,
 	indexer cosmosevmtypes.EVMTxIndexer,
 	app AppWithPendingTxStream,
-) (*http.Server, chan struct{}, error) {
-	logger := ctx.Logger.With("module", "geth")
+) (*http.Server, error) {
+	logger := srvCtx.Logger.With("module", "geth")
 
 	evtClient, ok := clientCtx.Client.(rpcclient.EventsClient)
 	if !ok {
-		return nil, nil, fmt.Errorf("client %T does not implement EventsClient", clientCtx.Client)
+		return nil, fmt.Errorf("client %T does not implement EventsClient", clientCtx.Client)
 	}
 
 	stream := stream.NewRPCStreams(evtClient, logger, clientCtx.TxConfig.TxDecoder())
@@ -53,16 +57,16 @@ func StartJSONRPC(ctx *server.Context,
 	allowUnprotectedTxs := config.JSONRPC.AllowUnprotectedTxs
 	rpcAPIArr := config.JSONRPC.API
 
-	apis := rpc.GetRPCAPIs(ctx, clientCtx, stream, allowUnprotectedTxs, indexer, rpcAPIArr)
+	apis := rpc.GetRPCAPIs(srvCtx, clientCtx, stream, allowUnprotectedTxs, indexer, rpcAPIArr)
 
 	for _, api := range apis {
 		if err := rpcServer.RegisterName(api.Namespace, api.Service); err != nil {
-			ctx.Logger.Error(
+			logger.Error(
 				"failed to register service in JSON RPC namespace",
 				"namespace", api.Namespace,
 				"service", api.Service,
 			)
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -86,33 +90,42 @@ func StartJSONRPC(ctx *server.Context,
 
 	ln, err := Listen(httpSrv.Addr, config)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	errCh := make(chan error)
-	go func() {
-		ctx.Logger.Info("Starting JSON-RPC server", "address", config.JSONRPC.Address)
-		if err := httpSrv.Serve(ln); err != nil {
+	g.Go(func() error {
+		srvCtx.Logger.Info("Starting JSON-RPC server", "address", config.JSONRPC.Address)
+		errCh := make(chan error)
+		go func() {
+			errCh <- httpSrv.Serve(ln)
+		}()
+
+		// Start a blocking select to wait for an indication to stop the server or that
+		// the server failed to start properly.
+		select {
+		case <-ctx.Done():
+			// The calling process canceled or closed the provided context, so we must
+			// gracefully stop the JSON-RPC server.
+			logger.Info("stopping JSON-RPC server...", "address", config.JSONRPC.Address)
+			if err := httpSrv.Shutdown(context.Background()); err != nil {
+				logger.Error("failed to shutdown JSON-RPC server", "error", err.Error())
+			}
+			return nil
+
+		case err := <-errCh:
 			if err == http.ErrServerClosed {
 				close(httpSrvDone)
-				return
+				return nil
 			}
 
-			ctx.Logger.Error("failed to start JSON-RPC server", "error", err.Error())
-			errCh <- err
+			srvCtx.Logger.Error("failed to start JSON-RPC server", "error", err.Error())
+			return err
 		}
-	}()
+	})
 
-	select {
-	case err := <-errCh:
-		ctx.Logger.Error("failed to boot JSON-RPC server", "error", err.Error())
-		return nil, nil, err
-	case <-time.After(serverconfig.ServerStartTime): // assume JSON RPC server started successfully
-	}
+	srvCtx.Logger.Info("Starting JSON WebSocket server", "address", config.JSONRPC.WsAddress)
 
-	ctx.Logger.Info("Starting JSON WebSocket server", "address", config.JSONRPC.WsAddress)
-
-	wsSrv := rpc.NewWebsocketsServer(clientCtx, ctx.Logger, stream, config)
+	wsSrv := rpc.NewWebsocketsServer(clientCtx, logger, stream, config)
 	wsSrv.Start()
-	return httpSrv, httpSrvDone, nil
+	return httpSrv, nil
 }
