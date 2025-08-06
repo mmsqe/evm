@@ -91,6 +91,7 @@ type OneFeeHistory struct {
 	GasUsedRatio         float64    // the ratio of gas used to the gas limit for each block
 }
 
+// Embedded TraceConfig type to store raw JSON data of config in custom field
 type TraceConfig struct {
 	evmtypes.TraceConfig
 	TracerConfig json.RawMessage `json:"tracerConfig"`
