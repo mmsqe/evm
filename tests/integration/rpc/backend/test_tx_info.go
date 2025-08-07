@@ -564,10 +564,11 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 		blockResult  []*abci.ExecTxResult
 		expPass      bool
 		expErr       error
+		expEmpty     bool
 	}{
 		// TODO test happy path
 		{
-			name:         "fail - tx not found",
+			name:         "success - tx not found",
 			registerMock: func() {},
 			block:        &types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
 			tx:           msgEthereumTx2,
@@ -586,8 +587,8 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 					},
 				},
 			},
-			expPass: false,
-			expErr:  fmt.Errorf("tx not found, hash: %s", txHash.Hex()),
+			expPass:  true,
+			expEmpty: true,
 		},
 		{
 			name: "fail - block not found",
@@ -645,8 +646,8 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 			expErr:  fmt.Errorf("block result not found at height 1: some error"),
 		},
 		{
-			"happy path",
-			func() {
+			name: "happy path",
+			registerMock: func() {
 				var header metadata.MD
 				QueryClient := s.backend.QueryClient.QueryClient.(*mocks.EVMQueryClient)
 				client := s.backend.ClientCtx.Client.(*mocks.Client)
@@ -656,9 +657,9 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 				_, err = RegisterBlockResults(client, 1)
 				s.Require().NoError(err)
 			},
-			msgEthereumTx,
-			&types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
-			[]*abci.ExecTxResult{
+			tx:    msgEthereumTx,
+			block: &types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
+			blockResult: []*abci.ExecTxResult{
 				{
 					Code: 0,
 					Events: []abci.Event{
@@ -673,8 +674,7 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 					},
 				},
 			},
-			true,
-			nil,
+			expPass: true,
 		},
 	}
 
@@ -690,7 +690,10 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 
 			hash := common.HexToHash(tc.tx.Hash)
 			res, err := s.backend.GetTransactionReceipt(hash)
-			if tc.expPass {
+			switch {
+			case tc.expEmpty:
+				s.Require().Empty(res)
+			case tc.expPass:
 				s.Require().Equal(res["transactionHash"], hash)
 				s.Require().Equal(res["blockNumber"], hexutil.Uint64(tc.block.Height)) //nolint: gosec // G115
 				requiredFields := []string{"status", "cumulativeGasUsed", "logsBloom", "logs", "gasUsed", "blockHash", "blockNumber", "transactionIndex", "effectiveGasPrice", "from", "to", "type"}
@@ -699,7 +702,7 @@ func (s *TestSuite) TestGetTransactionReceipt() {
 				}
 				s.Require().Nil(res["contractAddress"]) // no contract creation
 				s.Require().NoError(err)
-			} else {
+			default:
 				s.Require().Error(err)
 				s.Require().ErrorContains(err, tc.expErr.Error())
 			}
