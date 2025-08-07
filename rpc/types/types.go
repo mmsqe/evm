@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/cosmos/evm/x/vm/statedb"
+	evmtypes "github.com/cosmos/evm/x/vm/types"
 )
 
 // Copied the Account and StorageResult types since they are registered under an
@@ -131,4 +133,10 @@ type OneFeeHistory struct {
 	BaseFee, NextBaseFee *big.Int   // base fee for each block
 	Reward               []*big.Int // each element of the array will have the tip provided to miners for the percentile given
 	GasUsedRatio         float64    // the ratio of gas used to the gas limit for each block
+}
+
+// Embedded TraceConfig type to store raw JSON data of config in custom field
+type TraceConfig struct {
+	evmtypes.TraceConfig
+	TracerConfig json.RawMessage `json:"tracerConfig"`
 }
