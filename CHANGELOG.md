@@ -27,6 +27,7 @@
 
 - [\#346](https://github.com/cosmos/evm/pull/346) Add eth_createAccessList method and implementation
 - [\#502](https://github.com/cosmos/evm/pull/502) Add block time in derived logs.
+- [\#337](https://github.com/cosmos/evm/pull/337) Support state overrides in eth_call.
 
 ### STATE BREAKING
 
