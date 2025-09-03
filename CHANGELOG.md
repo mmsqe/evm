@@ -29,6 +29,7 @@
 - [\#582](https://github.com/cosmos/evm/pull/582) Add block max-gas (from genesis.json) and new min-tip (from app.toml/flags) ingestion into mempool config
 - [\#598](https://github.com/cosmos/evm/pull/598) Reduce number of times CreateQueryContext in mempool.
 - [\#577](https://github.com/cosmos/evm/pull/577) Cleanup precompiles boilerplate code.
+- [\#584](https://github.com/cosmos/evm/pull/584) Fill block and tx informations in json-rpc.
 
 ### FEATURES
 
