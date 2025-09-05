@@ -79,6 +79,10 @@ func (t *TrackingMultiStore) CacheMultiStore() storetypes.CacheMultiStore {
 	return tms
 }
 
+func (t *TrackingMultiStore) GetObjKVStore(key storetypes.StoreKey) storetypes.ObjKVStore {
+	return t.Store.GetObjKVStore(key)
+}
+
 // ValidateWrites tests the number of writes to a tree of tracking multi stores,
 // and that all the writes in a branching cache multistore/cascade upwards
 func ValidateWrites(t *testing.T, ms *TrackingMultiStore, expWrites int) {

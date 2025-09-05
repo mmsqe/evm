@@ -129,6 +129,15 @@ func (s *Store) GetKVStore(key storetypes.StoreKey) storetypes.KVStore {
 	return store.CurrentStore()
 }
 
+// GetObjKVStore returns the underlying ObjKVStore for the given key.
+func (s *Store) GetObjKVStore(key storetypes.StoreKey) storetypes.ObjKVStore {
+	store := s.stores[key]
+	if store == nil {
+		panic(fmt.Sprintf("obj kv store with key %v has not been registered in stores", key))
+	}
+	return store.(storetypes.ObjKVStore)
+}
+
 // TracingEnabled returns if tracing is enabled for the MultiStore.
 func (s *Store) TracingEnabled() bool {
 	return false
