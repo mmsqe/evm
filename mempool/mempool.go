@@ -188,6 +188,7 @@ func NewExperimentalEVMMempool(getCtxCallback func(height int64, prove bool) (sd
 		evmDenom:      evmDenom,
 		blockGasLimit: config.BlockGasLimit,
 		minTip:        config.MinTip,
+		anteHandler:   config.AnteHandler,
 		txGases:       make(map[string]uint64),
 	}
 
