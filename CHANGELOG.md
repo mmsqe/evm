@@ -30,6 +30,7 @@
 - [\#598](https://github.com/cosmos/evm/pull/598) Reduce number of times CreateQueryContext in mempool.
 - [\#577](https://github.com/cosmos/evm/pull/577) Cleanup precompiles boilerplate code.
 - [\#584](https://github.com/cosmos/evm/pull/584) Fill block and tx informations in json-rpc.
+- [\#624](https://github.com/cosmos/evm/pull/624) Cleanup unnecessary `fix-revert-gas-refund-height`.
 
 ### FEATURES
 
