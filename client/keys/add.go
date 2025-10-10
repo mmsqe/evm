@@ -191,11 +191,7 @@ func RunAddCmd(ctx client.Context, cmd *cobra.Command, args []string, inBuf *buf
 				cosmosLedger.SetSkipDERConversion()
 			case 118:
 				cosmosLedger.SetDiscoverLedger(func() (cosmosLedger.SECP256K1, error) {
-					device, err := ledger.FindLedgerCosmosUserApp()
-					if err != nil {
-						return nil, err
-					}
-					return device, nil
+					return ledger.FindLedgerCosmosUserApp()
 				})
 				cosmosLedger.SetCreatePubkey(func(key []byte) cryptotypes.PubKey {
 					return &secp256k1.PubKey{Key: key}
