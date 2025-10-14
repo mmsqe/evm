@@ -181,9 +181,7 @@ func RunAddCmd(ctx client.Context, cmd *cobra.Command, args []string, inBuf *buf
 		if needHardware {
 			switch coinType {
 			case 60:
-				cosmosLedger.SetDiscoverLedger(func() (cosmosLedger.SECP256K1, error) {
-					return evmkeyring.LedgerDerivation()
-				})
+				cosmosLedger.SetDiscoverLedger(getEthereumLedgerDiscovery())
 				cosmosLedger.SetCreatePubkey(func(key []byte) cryptotypes.PubKey {
 					return evmkeyring.CreatePubkey(key)
 				})
