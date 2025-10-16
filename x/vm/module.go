@@ -37,7 +37,6 @@ var (
 
 	_ appmodule.HasBeginBlocker = AppModule{}
 	_ appmodule.HasEndBlocker   = AppModule{}
-	_ appmodule.HasPreBlocker   = AppModule{}
 )
 
 // AppModuleBasic defines the basic application module used by the evm module.
@@ -134,15 +133,6 @@ func (AppModule) Name() string {
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
-}
-
-func (am AppModule) PreBlock(goCtx context.Context) (appmodule.ResponsePreBlock, error) {
-	ctx := sdk.UnwrapSDKContext(goCtx)
-	params := am.keeper.GetParams(ctx)
-	am.initializer.Do(func() {
-		SetGlobalConfigVariables(ctx, am.keeper, am.bankKeeper, params)
-	})
-	return &sdk.ResponsePreBlock{ConsensusParamsChanged: false}, nil
 }
 
 // BeginBlock returns the begin blocker for the evm module.
