@@ -24,6 +24,7 @@
 - [\#668](https://github.com/cosmos/evm/pull/668) Fix panic in legacy mempool when Reset() was called with a skipped header between old and new block.
 - [\#727](https://github.com/cosmos/evm/pull/727) Avoid nil pointer for `tx evm raw` due to uninitialized EVM coin info.
 - [\#723](https://github.com/cosmos/evm/pull/723) Fix TransactionIndex in receipt generation to use actual EthTxIndex instead of loop index.
+- [\#725](https://github.com/cosmos/evm/pull/725) Fix inconsistent block hash in json-rpc.
 
 ### IMPROVEMENTS
 
