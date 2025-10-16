@@ -22,9 +22,11 @@
 - [\#687](https://github.com/cosmos/evm/pull/687) Avoid blocking node shutdown when evm indexer is enabled, log startup failures instead of using errgroup.
 - [\#689](https://github.com/cosmos/evm/pull/689) Align debug addr for hex address.
 - [\#668](https://github.com/cosmos/evm/pull/668) Fix panic in legacy mempool when Reset() was called with a skipped header between old and new block.
+- [\#727](https://github.com/cosmos/evm/pull/727) Avoid nil pointer for `tx evm raw` due to uninitialized EVM coin info.
 
 ### IMPROVEMENTS
 
+- [\#708](https://github.com/cosmos/evm/pull/708) Add configurable testnet validator powers
 - [\#698](https://github.com/cosmos/evm/pull/698) Expose mempool configuration flags and move mempool configuration in app.go to helper
 - [\#538](https://github.com/cosmos/evm/pull/538) Optimize `eth_estimateGas` gRPC path: short-circuit plain transfers, add optimistic gas bound based on `MaxUsedGas`.
 - [\#513](https://github.com/cosmos/evm/pull/513) Replace `TestEncodingConfig` with production `EncodingConfig` in encoding package to remove test dependencies from production code.
