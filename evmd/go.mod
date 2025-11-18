@@ -274,7 +274,7 @@ require (
 replace (
 	// use cosmos fork of keyring
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
-	github.com/cosmos/cosmos-sdk => github.com/mmsqe/cosmos-sdk v0.46.0-beta2.0.20251117063145-abeea91c7fd5
+	github.com/cosmos/cosmos-sdk => github.com/mmsqe/cosmos-sdk v0.46.0-beta2.0.20251118062204-f834853efb0e
 	github.com/cosmos/evm => ../
 	// use Cosmos geth fork
 	// branch: release/1.16
