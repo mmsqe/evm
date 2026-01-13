@@ -1,12 +1,19 @@
 # CHANGELOG
 
-## UNRELEASED
+## v0.5.1
+
+### DEPENDENCIES
+
+### IMPROVEMENTS
+
+### FEATURES
 
 ### BUG FIXES
 
-- [\#15](https://github.com/MANTRA-Chain/evm/pull/15) remove unnecessary validation on sender address by ibc middleware
-- [\#16](https://github.com/MANTRA-Chain/evm/pull/16) fix evmCoinInfo panic in historical query.
-- [\#17](https://github.com/MANTRA-Chain/evm/pull/17) Avoid nil pointer when RPC requests execute before evmCoinInfo initialization in PreBlock with defaultEvmCoinInfo fallback.
+- [\#690](https://github.com/cosmos/evm/pull/690) Fix Ledger hardware wallet support for coin type 60.
+- [\#769](https://github.com/cosmos/evm/pull/769) Fix erc20 ibc middleware to not to validate sender address format.
+- [\#790](https://github.com/cosmos/evm/pull/790) fix panic in historical query due to missing EvmCoinInfo.
+- [\#816](https://github.com/cosmos/evm/pull/816) Avoid nil pointer when RPC requests execute before evmCoinInfo initialization in PreBlock with defaultEvmCoinInfo fallback.
 
 ## v0.5.0
 

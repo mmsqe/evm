@@ -1,7 +1,6 @@
 package erc20
 
 import (
-	"bytes"
 	"fmt"
 
 	utiltx "github.com/cosmos/evm/testutil/tx"
@@ -12,7 +11,6 @@ import (
 
 func (s *KeeperTestSuite) TestMintingEnabled() {
 	var ctx sdk.Context
-	sender := sdk.AccAddress(utiltx.GenerateAddress().Bytes())
 	receiver := sdk.AccAddress(utiltx.GenerateAddress().Bytes())
 	expPair := types.NewTokenPair(utiltx.GenerateAddress(), "coin", types.OWNER_MODULE)
 	id := expPair.GetID()
@@ -98,7 +96,7 @@ func (s *KeeperTestSuite) TestMintingEnabled() {
 
 			tc.malleate()
 
-			pair, err := s.network.App.GetErc20Keeper().MintingEnabled(ctx, receiver, expPair.Erc20Address, bytes.Equal(sender, receiver))
+			pair, err := s.network.App.GetErc20Keeper().MintingEnabled(ctx, receiver, expPair.Erc20Address)
 			if tc.expPass {
 				s.Require().NoError(err)
 				s.Require().Equal(expPair, pair)
