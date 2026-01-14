@@ -14,6 +14,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
@@ -66,6 +67,7 @@ func DefaultStaticPrecompiles(
 	stakingKeeper stakingkeeper.Keeper,
 	distributionKeeper distributionkeeper.Keeper,
 	bankKeeper cmn.BankKeeper,
+	realBankKeeper bankkeeper.Keeper,
 	erc20Keeper *erc20Keeper.Keeper,
 	transferKeeper *transferkeeper.Keeper,
 	channelKeeper *channelkeeper.Keeper,
@@ -74,6 +76,7 @@ func DefaultStaticPrecompiles(
 	codec codec.Codec,
 	opts ...Option,
 ) map[common.Address]vm.PrecompiledContract {
+	bankMsgServer := bankkeeper.NewMsgServerImpl(realBankKeeper)
 	precompiles := NewStaticPrecompiles().
 		WithPraguePrecompiles().
 		WithP256Precompile().
@@ -81,7 +84,7 @@ func DefaultStaticPrecompiles(
 		WithStakingPrecompile(stakingKeeper, bankKeeper, opts...).
 		WithDistributionPrecompile(distributionKeeper, stakingKeeper, bankKeeper, opts...).
 		WithICS20Precompile(bankKeeper, stakingKeeper, transferKeeper, channelKeeper).
-		WithBankPrecompile(bankKeeper, erc20Keeper).
+		WithBankPrecompile(bankMsgServer, bankKeeper, erc20Keeper).
 		WithGovPrecompile(govKeeper, bankKeeper, codec, opts...).
 		WithSlashingPrecompile(slashingKeeper, bankKeeper, opts...)
 

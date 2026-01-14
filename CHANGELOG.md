@@ -8,6 +8,8 @@
 
 ### FEATURES
 
+- [\#804](https://github.com/cosmos/evm/pull/804) Bank precompile redesign.
+
 ### BUG FIXES
 
 - [\#690](https://github.com/cosmos/evm/pull/690) Fix Ledger hardware wallet support for coin type 60.
