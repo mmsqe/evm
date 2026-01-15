@@ -9,9 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
-	"github.com/yihuang/go-abi"
-
-	_ "embed"
 
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
@@ -27,8 +24,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
-
-//go:generate go run github.com/yihuang/go-abi/cmd -var ERC20ABI -package erc20 -output erc20/erc20.abi.go
 
 var ERC20ABI = []string{
 	"function name() view returns (string name)",
@@ -55,10 +50,14 @@ type TokenInfo struct {
 	Decimals     byte
 }
 
+type Encodable interface {
+	Encode() ([]byte, error)
+}
+
 func Setup(t *testing.T, token TokenInfo, mintTo common.Address, mintAmount uint64) *vm.EVM {
 	t.Helper()
 
-	chainID := uint64(constants.EighteenDecimalsChainID)
+	chainID := constants.ExampleChainID.EVMChainID
 	configurator := evmtypes.NewEVMConfigurator()
 	configurator.ResetTestConfig()
 	// set global chain config
@@ -69,7 +68,7 @@ func Setup(t *testing.T, token TokenInfo, mintTo common.Address, mintAmount uint
 	err := configurator.
 		WithExtendedEips(evmtypes.DefaultCosmosEVMActivators).
 		// NOTE: we're using the 18 decimals default for the example chain
-		WithEVMCoinInfo(constants.ChainsCoinInfo[chainID]).
+		WithEVMCoinInfo(constants.ExampleChainCoinInfo[constants.ExampleChainID]).
 		Configure()
 
 	require.NoError(t, err)
@@ -155,8 +154,8 @@ func TestBankPrecompile(t *testing.T) {
 	testCases := []struct {
 		name   string
 		caller common.Address
-		args   abi.Method
-		output abi.Encode
+		args   []byte
+		output Encodable
 		expErr error
 	}{
 		{"name", user1, NewNameCall(token.Denom), &NameReturn{token.Name}, nil},
@@ -213,16 +212,16 @@ func TestBankPrecompile(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			evm := setup(t)
-			input, err := tc.args.EncodeWithSelector()
-			require.NoError(t, err)
-			ret, _, err := evm.Call(tc.caller, BankPrecompile, input, GasLimit, uint256.NewInt(0))
+			ret, _, err := evm.Call(tc.caller, BankPrecompile, tc.args, GasLimit, uint256.NewInt(0))
 			if tc.expErr != nil {
 				require.Equal(t, tc.expErr, err)
 			} else {
 				require.NoError(t, err)
-				expOutput, err := tc.output.Encode()
-				require.NoError(t, err)
-				require.Equal(t, expOutput, ret)
+				if tc.output != nil {
+					expOutput, err := tc.output.Encode()
+					require.NoError(t, err)
+					require.Equal(t, expOutput, ret)
+				}
 			}
 		})
 	}
@@ -258,8 +257,8 @@ func TestBankERC20(t *testing.T) {
 		name   string
 		caller common.Address
 		token  common.Address
-		input  abi.Method
-		output abi.Encode
+		input  []byte
+		output Encodable
 		expErr error
 	}{
 		{"name", zero, token, erc20.NewNameCall(), &erc20.NameReturn{Name: info.Name}, nil},
@@ -302,19 +301,18 @@ func TestBankERC20(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			evm := setup(t)
 
-			input, err := tc.input.EncodeWithSelector()
-			require.NoError(t, err)
-
-			ret, _, err := evm.Call(tc.caller, tc.token, input, GasLimit, uint256.NewInt(0))
+			ret, _, err := evm.Call(tc.caller, tc.token, tc.input, GasLimit, uint256.NewInt(0))
 			if tc.expErr != nil {
 				require.Equal(t, tc.expErr, err)
 				return
 			}
 
 			require.NoError(t, err)
-			expOutput, err := tc.output.Encode()
-			require.NoError(t, err)
-			require.Equal(t, expOutput, ret)
+			if tc.output != nil {
+				expOutput, err := tc.output.Encode()
+				require.NoError(t, err)
+				require.Equal(t, expOutput, ret)
+			}
 		})
 	}
 }

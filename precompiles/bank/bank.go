@@ -6,7 +6,6 @@
 package bank
 
 import (
-	"embed"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -21,40 +20,31 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-//go:generate go run ../cmd -var=HumanABI -output bank.abi.go
-
 var HumanABI = []string{
 	// backwards compatibility
-	"struct Balance{ address contractAddress; uint amount; }",
-	"function balances(address account) returns (Balance[] balances)",
-	"function totalSupply() returns (Balance[] totalSupply)",
-	"function supplyOf(address contract) returns (uint totalSupply)",
+	"function balances(address account) returns (tuple(address contractAddress, uint256 amount)[] balances)",
+	"function totalSupply() returns (tuple(address contractAddress, uint256 amount)[] totalSupply)",
+	"function supplyOf(address contract) returns (uint256 totalSupply)",
 
 	// v2 design
-	"function name(string denom) returns (string name)",
-	"function symbol(string denom) returns (string symbol)",
-	"function decimals(string denom) returns (uint8 decimals)",
-	"function totalSupply(string denom) returns (uint256 supply)",
-	"function balanceOf(address account, string denom) returns (uint256 balance)",
+	"function name(string denom) view returns (string name)",
+	"function symbol(string denom) view returns (string symbol)",
+	"function decimals(string denom) view returns (uint8 decimals)",
+	"function totalSupply(string denom) view returns (uint256 supply)",
+	"function balanceOf(address account, string denom) view returns (uint256 balance)",
 	"function transferFrom(address from, address to, uint256 value, string denom) returns (bool)",
 
 	// generate the erc20 constructor abi
 	"function erc20ctor(string denom, address bank)",
 }
 
-var (
-	// Embed abi json file to the executable binary. Needed when importing as dependency.
-	//
-	//go:embed abi.json
-	f   embed.FS
-	ABI abi.ABI
-)
+var ABI abi.ABI
 
 func init() {
 	var err error
-	ABI, err = cmn.LoadABI(f, "abi.json")
+	ABI, err = cmn.ParseHumanReadableABI(HumanABI)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to parse bank precompile ABI: %v", err))
 	}
 }
 

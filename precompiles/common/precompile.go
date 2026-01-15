@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/yihuang/go-abi"
 
 	"github.com/cosmos/evm/x/vm/statedb"
 
@@ -16,6 +15,20 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+// Decode interface for ABI input decoding
+// Types implementing this can decode ABI-encoded input data
+type Decode interface {
+	Decode([]byte) (int, error)
+}
+
+// Encode interface for ABI output encoding
+// Types implementing this can encode return values to ABI format
+type Encode interface {
+	Encode() ([]byte, error)
+	EncodeTo([]byte) (int, error)
+	EncodedSize() int
+}
 
 // NativeAction abstract the native execution logic of the stateful precompile, it's passed to the base `Precompile`
 // struct, base `Precompile` struct will handle things the native context setup, gas management, panic recovery etc,
@@ -279,8 +292,8 @@ func ParseMethod(input []byte, readOnly bool, isTransaction func(uint32) bool) (
 
 func Run[I any, PI interface {
 	*I
-	abi.Decode
-}, O abi.Encode](
+	Decode
+}, O Encode](
 	ctx sdk.Context,
 	fn func(sdk.Context, I) (O, error),
 	input []byte,
@@ -300,8 +313,8 @@ func Run[I any, PI interface {
 
 func RunWithStateDB[I any, PI interface {
 	*I
-	abi.Decode
-}, O abi.Encode](
+	Decode
+}, O Encode](
 	ctx sdk.Context,
 	fn func(sdk.Context, I, vm.StateDB, *vm.Contract) (O, error),
 	input []byte,
