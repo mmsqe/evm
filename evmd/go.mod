@@ -387,6 +387,8 @@ replace (
 	github.com/tidwall/btree => github.com/cosmos/btree v0.0.0-20250924232609-2c6195d95951
 )
 
+replace github.com/cometbft/cometbft => github.com/mmsqe/cometbft v0.34.21-0.20260319094008-7eea45d4026c
+
 replace github.com/cosmos/cosmos-sdk/x/group => github.com/cosmos/cosmos-sdk/enterprise/group v0.0.0-20260227212600-39d4711b8970
 
 replace cosmossdk.io/log/v2 => github.com/cosmos/cosmos-sdk/log/v2 v2.0.2-0.20260302180736-2fbcc8d5f49e
