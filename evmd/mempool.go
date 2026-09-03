@@ -59,7 +59,7 @@ func (app *EVMD) configureEVMMempool(appOpts servertypes.AppOptions, logger log.
 	// at the height this proposal builds on (see SnapshotVerifiedTxVerifier).
 	// The base comes from the ABCI request, not the notify-driven pin, which
 	// can lag a beat behind the last commit.
-	verifier := NewSnapshotVerifiedTxVerifier(app.BaseApp, mempool)
+	verifier := NewSnapshotVerifiedTxVerifier(app.BaseApp, mempool, logger)
 	proposalHandler := baseapp.NewDefaultProposalHandler(mempool, verifier)
 	defaultPrepareProposal := proposalHandler.PrepareProposalHandler()
 	prepareProposalHandler := func(ctx sdk.Context, req *abci.RequestPrepareProposal) (*abci.ResponsePrepareProposal, error) {
