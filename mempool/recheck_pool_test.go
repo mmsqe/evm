@@ -848,24 +848,42 @@ func TestRecheckMempool_CarryForwardSurvivesCancellation(t *testing.T) {
 	close(gate)
 }
 
+// The stamp must be the height of the state a pass validates against, not the
+// trigger header's, which can run one ahead.
+func TestRecheckMempool_SnapshotStampFollowsValidatedState(t *testing.T) {
+	ctx := newRecheckTestContext().WithBlockHeight(5)
+	mp := newStartedRecheckMempool(t, ctx, nil, noopAnteHandler)
+
+	key, err := crypto.GenerateKey()
+	require.NoError(t, err)
+	tx := newRecheckTestTx(t, key)
+	require.NoError(t, mp.Insert(ctx, tx))
+
+	// trigger with a header one ahead of the state the pass validates against
+	mp.TriggerRecheckSync(testHeader(6))
+
+	height, ok := mp.SnapshotValidatedAt(tx)
+	require.True(t, ok)
+	require.Equal(t, uint64(5), height, "stamp must follow the validated state, not the trigger header")
+}
+
 func newStartedRecheckMempool(
 	t *testing.T,
 	ctx sdk.Context,
 	cfg *sdkmempool.PriorityNonceMempoolConfig[sdkmath.Int],
 	ante sdk.AnteHandler,
-) (*mempool.RecheckMempool, *heightsync.HeightSync[mempool.CosmosTxStore]) {
+) *mempool.RecheckMempool {
 	t.Helper()
 
-	recheckedTxs := newTestRecheckedTxs()
 	mp := mempool.NewRecheckMempool(
 		cfg, 0, reserver.NewReservationTracker().NewHandle(1), newMockRechecker(ctx, ante),
-		recheckedTxs, newTestReapList(), newTestBlockchain(t, ctx), log.NewNopLogger(),
+		newTestRecheckedTxs(), newTestReapList(), newTestBlockchain(t, ctx), log.NewNopLogger(),
 	)
 	mp.Start(testHeader(0))
 	t.Cleanup(func() {
 		require.NoError(t, mp.Close())
 	})
-	return mp, recheckedTxs
+	return mp
 }
 
 func setupEVMChainConfig(t *testing.T) client.TxConfig {
@@ -1178,7 +1196,7 @@ func customReplacementConfig() *sdkmempool.PriorityNonceMempoolConfig[sdkmath.In
 // InvalidateFrom(newTx) never visits, only replacement hook can drop it and txs stacked on its nonces.
 func TestRecheckMempool_ReplacementWithDifferentSignerSetInvalidatesRechecked(t *testing.T) {
 	ctx := newRecheckTestContext()
-	mp, _ := newStartedRecheckMempool(t, ctx, customReplacementConfig(), noopAnteHandler)
+	mp := newStartedRecheckMempool(t, ctx, customReplacementConfig(), noopAnteHandler)
 
 	sender, err := crypto.GenerateKey()
 	require.NoError(t, err)

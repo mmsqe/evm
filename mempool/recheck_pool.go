@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/evm/mempool/internal/heightsync"
 	"github.com/cosmos/evm/mempool/internal/reaplist"
 	"github.com/cosmos/evm/mempool/reserver"
+	"github.com/cosmos/evm/utils"
 
 	"cosmossdk.io/log/v2"
 	"cosmossdk.io/math"
@@ -443,9 +444,15 @@ func (m *RecheckMempool) runRecheck(done chan struct{}, newHead *ethtypes.Header
 	}
 	m.rechecker.Update(latestCtx, newHead)
 
-	// stamp the snapshot only once validation actually runs against this
-	// height's state (see CosmosTxStore.SetHeight)
-	m.recheckedTxs.Do(func(store *CosmosTxStore) { store.SetHeight(newHead.Number.Uint64()) })
+	// Stamp with the height of the state we validate against, not newHead's:
+	// a commit landing between the two reads leaves newHead one ahead, and a
+	// stamp from it would let a proposal skip re-verifying committed txs.
+	validatedHeight, err := utils.SafeUint64(latestCtx.BlockHeight())
+	if err != nil {
+		m.logger.Error("invalid block height on recheck context", "err", err)
+		return
+	}
+	m.recheckedTxs.Do(func(store *CosmosTxStore) { store.SetHeight(validatedHeight) })
 
 	failedAtSequence := make(map[string]uint64)
 	removeTxs := make([]sdk.Tx, 0)
@@ -483,9 +490,13 @@ func (m *RecheckMempool) runRecheck(done chan struct{}, newHead *ethtypes.Header
 		keepFuturesOnError := false
 		if !invalidTx {
 			ctx, write := m.rechecker.GetContext()
-			// Signatures were verified on insert and the bytes have not changed,
-			// so recheck mode lets sigverify skip the crypto, state-dependent
-			// checks (sequence, fees, balances) still run.
+			// Bytes are unchanged since insert verified them, so recheck mode
+			// skips the crypto while sequence, fee and balance checks still
+			// run. That holds for x/auth's decorator; the deprecated EIP-712
+			// one skips its sequence check too, stranding committed txs here.
+			// ibc-go's relay decorator likewise skips packet proof and client
+			// message verification in this mode; its redundancy eviction was
+			// already active, since query contexts are CheckTx contexts.
 			_, err := m.rechecker.RecheckCosmos(ctx.WithIsReCheckTx(true), txn)
 			if err == nil {
 				write()
