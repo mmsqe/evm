@@ -21,8 +21,6 @@ import (
 	evmtrace "github.com/cosmos/evm/trace"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 
-	errorsmod "cosmossdk.io/errors"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -157,28 +155,15 @@ func (b *Backend) SendRawTransaction(ctx context.Context, data hexutil.Bytes) (r
 	return txHash, nil
 }
 
-// submitTx inserts the tx into the app-side EVM mempool when there is one:
-// broadcasting through CometBFT would only reach the app's CheckTx handler,
-// which inserts into the same pool but flattens the error to an ABCI code.
-// Without an EVM mempool (mempool.max-txs = -1) CometBFT's mempool is the
-// pool, so broadcasting is the only way in.
+// submitTx inserts the tx into the app-side EVM mempool. It calls the mempool
+// directly rather than going through ABCI CheckTx, which would flatten the
+// error to a code. Without an EVM mempool (mempool.max-txs = -1) there is no
+// pool to insert into, so submission is rejected with ErrMempoolDisabled.
 func (b *Backend) submitTx(ctx context.Context, tx sdk.Tx) error {
-	if b.Mempool != nil {
-		return b.Mempool.Insert(ctx, tx)
+	if b.Mempool == nil {
+		return rpctypes.ErrMempoolDisabled
 	}
-
-	txBytes, err := b.ClientCtx.TxConfig.TxEncoder()(tx)
-	if err != nil {
-		return err
-	}
-	rsp, err := b.ClientCtx.BroadcastTxSync(txBytes)
-	if err != nil {
-		return err
-	}
-	if rsp.Code != 0 {
-		return errorsmod.ABCIError(rsp.Codespace, rsp.Code, rsp.RawLog)
-	}
-	return nil
+	return b.Mempool.Insert(ctx, tx)
 }
 
 // SetTxDefaults populates tx message with default values in case they are not

@@ -122,15 +122,14 @@ func (s *TestSuite) TestSendTransaction() {
 			true,
 		},
 		{
-			"pass - no EVM mempool, broadcast through CometBFT",
+			"fail - no EVM mempool",
 			func() {
-				client, tx := buildBroadcastTx(s, priv, baseFee, callArgsDefault)
+				_, _ = buildBroadcastTx(s, priv, baseFee, callArgsDefault)
 				s.backend.Mempool = nil
-				RegisterBroadcastTx(client, s.encodeTx(tx))
 			},
 			callArgsDefault,
-			hash,
-			true,
+			common.Hash{},
+			false,
 		},
 	}
 
@@ -257,6 +256,7 @@ func (s *TestSuite) TestSignTypedData() {
 	}
 }
 
+//nolint:unparam
 func buildBroadcastTx(suite *TestSuite, priv *ethsecp256k1.PrivKey, baseFee math.Int, callArgsDefault evmtypes.TransactionArgs) (*mocks.Client, signing.Tx) {
 	var header metadata.MD
 
