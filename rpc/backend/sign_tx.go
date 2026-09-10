@@ -98,7 +98,16 @@ func (b *Backend) SendTransaction(ctx context.Context, args evmtypes.Transaction
 	}
 
 	txHash := ethTx.Hash()
-	if err := b.submitTx(ctx, tx); err != nil {
+
+	// publish tx directly to app-side mempool, avoiding broadcasting to
+	// consensus layer.
+	// we are directly calling into the mempool rather than the ABCI
+	// handler for InsertTx, since the ABCI handler obfuscates the error's
+	// returned via codes, and we would like to have the full error to
+	// return to clients.
+	if err = b.Mempool.Insert(ctx, tx); err != nil {
+		// no need for special error handling like in the broadcast tx case
+		// since this is coming directly from the evm mempool insert.
 		return common.Hash{}, err
 	}
 

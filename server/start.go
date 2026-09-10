@@ -564,7 +564,7 @@ func startInProcess(svrCtx *server.Context, clientCtx client.Context, opts Start
 			return fmt.Errorf("json-rpc server requires AppWithPendingTxStream")
 		}
 
-		// nil without the EVM mempool (mempool.max-txs = -1): tx submission then returns ErrMempoolDisabled
+		// nil without the app-side EVM mempool (mempool.max-txs = -1); NewBackend substitutes NoOpMempool
 		mp, _ := evmApp.GetMempool().(backend.Mempool)
 		_, err = StartJSONRPC(ctx, svrCtx, clientCtx, g, &config, idxer, txApp, mp)
 		if err != nil {

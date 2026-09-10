@@ -231,6 +231,11 @@ func NewBackend(
 		panic(fmt.Sprintf("invalid rpc client, expected: tmrpcclient.SignClient, got: %T", clientCtx.Client))
 	}
 
+	// nil without the app-side EVM mempool: serve queries, reject submission
+	if mempool == nil {
+		mempool = NoOpMempool{}
+	}
+
 	b := &Backend{
 		ClientCtx:           clientCtx,
 		RPCClient:           rpcClient,

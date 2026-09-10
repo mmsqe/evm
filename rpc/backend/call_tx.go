@@ -146,24 +146,22 @@ func (b *Backend) SendRawTransaction(ctx context.Context, data hexutil.Bytes) (r
 	}
 
 	txHash := tx.Hash()
-	if err := b.submitTx(ctx, cosmosTx); err != nil {
+
+	// publish tx directly to app-side mempool, avoiding broadcasting to
+	// consensus layer.
+	// we are directly calling into the mempool rather than the ABCI
+	// handler for InsertTx, since the ABCI handler obfuscates the error's
+	// returned via codes, and we would like to have the full error to
+	// return to clients.
+	if err = b.Mempool.Insert(ctx, cosmosTx); err != nil {
+		// no need for special error handling like in the broadcast tx case
+		// since this is coming directly from the evm mempool insert.
 		return common.Hash{}, err
 	}
 
 	b.TrackTxIfSupported(txHash)
 
 	return txHash, nil
-}
-
-// submitTx inserts the tx into the app-side EVM mempool. It calls the mempool
-// directly rather than going through ABCI CheckTx, which would flatten the
-// error to a code. Without an EVM mempool (mempool.max-txs = -1) there is no
-// pool to insert into, so submission is rejected with ErrMempoolDisabled.
-func (b *Backend) submitTx(ctx context.Context, tx sdk.Tx) error {
-	if b.Mempool == nil {
-		return rpctypes.ErrMempoolDisabled
-	}
-	return b.Mempool.Insert(ctx, tx)
 }
 
 // SetTxDefaults populates tx message with default values in case they are not
